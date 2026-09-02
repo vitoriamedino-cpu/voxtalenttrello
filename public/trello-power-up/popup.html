@@ -80,49 +80,62 @@
 
   </div>
 
-  <script src="https://p.trellocdn.com/power-up.min.js"></script>
+<script src="https://p.trellocdn.com/power-up.min.js"></script>
 
-  <script>
-    const t = window.TrelloPowerUp.iframe();
+<script>
+  const status = document.getElementById("status");
+  const candidate = document.getElementById("candidate");
 
-    async function loadCard() {
-      try {
-        const card = await t.card(
-          "id",
-          "name",
-          "desc",
-          "url",
-          "shortLink",
-          "idList"
-        );
+  function showError(message) {
+    status.className = "error";
+    status.textContent = message;
+  }
 
-        document.getElementById("name").textContent =
-          card.name || "Não informado";
+  async function loadCard() {
+    try {
+      if (!window.TrelloPowerUp) {
+        throw new Error("Biblioteca do Trello não carregou.");
+      }
 
-        document.getElementById("description").textContent =
-          card.desc || "Sem descrição";
+      const t = window.TrelloPowerUp.iframe();
 
-        document.getElementById("url").textContent =
-          card.url || "Sem URL";
+      status.textContent = "Conectando ao Trello...";
 
-        document.getElementById("status").textContent =
-          "✓ Card carregado pelo VoxTalent";
+      const card = await t.card("id", "name", "desc", "url");
 
-        document.getElementById("candidate").style.display = "block";
+      console.log("VOXTALENT CARD:", card);
 
-      } catch (error) {
+      if (!card) {
+        throw new Error("O Trello não retornou os dados do card.");
+      }
 
-    console.error("ERRO VOXTALENT:", error);
+      document.getElementById("name").textContent =
+        card.name || "Não informado";
 
-    document.getElementById("status").className = "error";
+      document.getElementById("description").textContent =
+        card.desc || "Sem descrição";
 
-    document.getElementById("status").textContent =
-      "Erro: " + (error?.message || String(error));
-}
+      document.getElementById("url").textContent =
+        card.url || "Sem URL";
+
+      status.className = "status";
+      status.textContent = "✓ Card carregado pelo VoxTalent";
+
+      candidate.style.display = "block";
+
+    } catch (error) {
+
+      console.error("ERRO VOXTALENT:", error);
+
+      showError(
+        "Erro ao acessar o card: " +
+        (error && error.message ? error.message : String(error))
+      );
     }
+  }
 
-    loadCard();
-  </script>
+  loadCard();
+</script>
 
 </body>
 </html>
