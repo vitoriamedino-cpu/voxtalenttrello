@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --brand-teal: #00A9A1;
+    --brand-teal-hover: #008f88;
+    --brand-teal-text: #00857e;
+    --brand-orange: #F7941D;
+    --brand-orange-hover: #d97706;
+    --brand-orange-text: #c25e00;
+  }
+
+  .dark {
+    --brand-teal: #00C4BB;
+    --brand-teal-hover: #00dfd4;
+    --brand-teal-text: #2eebe1;
+    --brand-orange: #FFA336;
+    --brand-orange-hover: #ffb85d;
+    --brand-orange-text: #ffb85d;
+  }
+
+  body {
+    @apply transition-colors duration-150;
+  }
+}
+
+@layer utilities {
+  /* Smooth custom scrollbars for wide Kanban & panels */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #374151;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
+  }
+}
+
