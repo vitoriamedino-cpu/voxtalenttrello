@@ -112,13 +112,13 @@
 
       } catch (error) {
 
-        console.error(error);
+    console.error("ERRO VOXTALENT:", error);
 
-        document.getElementById("status").className = "error";
+    document.getElementById("status").className = "error";
 
-        document.getElementById("status").textContent =
-          "Não foi possível carregar os dados do card.";
-      }
+    document.getElementById("status").textContent =
+      "Erro: " + (error?.message || String(error));
+}
     }
 
     loadCard();
