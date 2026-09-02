@@ -11,35 +11,118 @@
       font-family: Arial, sans-serif;
       padding: 20px;
       margin: 0;
+      color: #0C0D0E;
     }
 
     h2 {
-      margin-top: 0;
+      margin: 0 0 16px;
+    }
+
+    .card {
+      background: #f5f7f7;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .value {
+      font-weight: 600;
+      word-break: break-word;
     }
 
     .status {
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
       background: #e8f7f6;
       color: #00857e;
       font-weight: bold;
+    }
+
+    .error {
+      padding: 10px;
+      border-radius: 8px;
+      background: #fff0f0;
+      color: #b42318;
     }
   </style>
 </head>
 
 <body>
 
-  <h2>VoxTalent</h2>
+  <h2>📱 VoxTalent</h2>
 
-  <div class="status">
-    ✓ Power-Up conectado ao Trello
+  <div id="status" class="status">
+    Lendo dados do candidato...
   </div>
 
-  <p>
-    Nosso primeiro teste está funcionando.
-  </p>
+  <div id="candidate" style="display: none;">
+
+    <div class="card">
+      <div class="label">Candidato</div>
+      <div id="name" class="value"></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Descrição do card</div>
+      <div id="description" class="value"></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Link do card</div>
+      <div id="url" class="value"></div>
+    </div>
+
+  </div>
 
   <script src="https://p.trellocdn.com/power-up.min.js"></script>
+
+  <script>
+    const t = window.TrelloPowerUp.iframe();
+
+    async function loadCard() {
+      try {
+        const card = await t.card(
+          "id",
+          "name",
+          "desc",
+          "url",
+          "shortLink",
+          "idList"
+        );
+
+        document.getElementById("name").textContent =
+          card.name || "Não informado";
+
+        document.getElementById("description").textContent =
+          card.desc || "Sem descrição";
+
+        document.getElementById("url").textContent =
+          card.url || "Sem URL";
+
+        document.getElementById("status").textContent =
+          "✓ Card carregado pelo VoxTalent";
+
+        document.getElementById("candidate").style.display = "block";
+
+      } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("status").className = "error";
+
+        document.getElementById("status").textContent =
+          "Não foi possível carregar os dados do card.";
+      }
+    }
+
+    loadCard();
+  </script>
 
 </body>
 </html>
