@@ -1,3 +1,5 @@
+import { LoginView } from './components/Auth/LoginView';
+import { useWorkspace } from './context/WorkspaceContext';
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -19,8 +21,7 @@ import { ColetivaScheduleModal } from './components/Modals/ColetivaScheduleModal
 import { InterviewScheduleModal } from './components/Modals/InterviewScheduleModal';
 import { CandidatePdfModal } from './components/Modals/CandidatePdfModal';
 import { EtapaListModal } from './components/Modals/EtapaListModal';
-
-const AppContent: React.FC = () => {
+const AppContent: React.FC = () => {  
   const {
     activeTab,
     candidateModalId,
@@ -47,7 +48,29 @@ const AppContent: React.FC = () => {
   } = useApp();
 
   const pdfCandidate = candidatePdfModalId ? getCandidatoById(candidatePdfModalId) : null;
+const { user, isLoadingAuth } = useWorkspace();
 
+if (isLoadingAuth) {
+  return (
+    <div className="min-h-screen w-full bg-[#F3F4F6] dark:bg-[#0B0F17] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#00A9A1] flex items-center justify-center">
+          <span className="text-white font-black">V</span>
+        </div>
+
+        <div className="w-5 h-5 rounded-full border-2 border-[#00A9A1] border-t-transparent animate-spin" />
+
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+          Verificando acesso...
+        </p>
+      </div>
+    </div>
+  );
+}
+
+if (!user) {
+  return <LoginView />;
+}
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#F3F4F6] dark:bg-[#0B0F17] font-sans text-gray-900 dark:text-gray-100 antialiased selection:bg-[#00A9A1] selection:text-white transition-colors duration-200">
       {/* Sidebar */}
