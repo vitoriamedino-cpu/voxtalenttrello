@@ -847,84 +847,98 @@ export async function syncVolumeToSheet(
       await updateSheetValues(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1`, painelRows);
     })(),
   ]);
+// Read Candidatos from the real recruitment sheet
+const candsValues = await getSheetValues(
+  spreadsheetId,
+  "'2. Processo Seletivo'!A2:N2000"
+);
+
+if (candsValues && candsValues.length > 0) {
+  const normalizeText = (value: unknown): string =>
+    String(value ?? '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  const normalizeStage = (value: unknown): EtapaProcesso => {
+    const stage = normalizeText(value);
+
+    if (stage.includes('triagem')) return 'Triagem';
+    if (stage.includes('1') && stage.includes('contato')) return '1º Contato';
+    if (stage.includes('video')) return 'Vídeo de Apresentação';
+    if (stage.includes('coletiva')) return 'Entrevista Coletiva/Online';
+    if (stage.includes('pratica')) return 'Etapa Prática';
+    if (stage.includes('gestor')) return 'Gestor';
+    if (stage.includes('diretoria')) return 'Diretoria';
+    if (stage.includes('banco')) return 'Banco de Talentos';
+
+    return 'Triagem';
+  };
+
+  const normalizeStatus = (value: unknown): StatusCandidato => {
+    const status = normalizeText(value);
+
+    if (status.includes('aprov')) return 'Aprovado';
+    if (status.includes('reprov')) return 'Reprovado';
+    if (status.includes('ausente')) return 'Ausente';
+    if (status.includes('desist')) return 'Desistente';
+
+    return 'Em andamento';
+  };
+
+  result.candidatos = candsValues
+    .filter((r) => r[1] && r[4])
+    .map((r, idx) => {
+      const dataAtualizacao = r[0] || new Date().toISOString();
+      const idVaga = r[1] || '';
+      const vaga = r[2] || 'Vaga R&S';
+      const unidade = (r[3] as UnidadeVox) || 'Vox Tirol';
+      const nome = r[4] || '';
+      const telefone = r[6] || '';
+      const origem = r[7] || '';
+      const etapa = normalizeStage(r[8]);
+      const status = normalizeStatus(r[9]);
+      const primeiroContato = r[10] || '';
+
+      const stableId = [
+        'proc',
+        idVaga,
+        nome,
+        telefone,
+      ]
+        .map((value) =>
+          normalizeText(value).replace(/[^a-z0-9]+/g, '-')
+        )
+        .filter(Boolean)
+        .join('-') || `cand-sheet-${idx}`;
+
+      return {
+        id: stableId,
+        nome,
+        email: '',
+        telefone,
+        vaga_id: idVaga,
+        vaga_titulo: vaga,
+        unidade,
+        etapa_processo: etapa,
+        status,
+        origem_cv: origem,
+        fluxo_simplificado: false,
+
+        criado_em: primeiroContato || dataAtualizacao,
+        atualizado_em: dataAtualizacao,
+
+        historico_etapas: [
+          {
+            etapa,
+            data: dataAtualizacao,
+            observacao: 'Carregado via aba 2. Processo Seletivo',
+          },
+        ],
+      };
+    });
 }
-
-/**
- * Granular sync when a new Custo is added
- */
-export async function syncNewCustoToSheet(
-  spreadsheetId: string,
-  newCusto: AcaoCusto,
-  vagas: Vaga[],
-  candidatos: Candidato[],
-  currentCustos: AcaoCusto[],
-  volumeCvs: VolumeCV[]
-): Promise<void> {
-  const row = [
-    newCusto.id,
-    newCusto.data,
-    newCusto.vaga_id || '',
-    newCusto.vaga_titulo,
-    newCusto.unidade,
-    newCusto.canal,
-    newCusto.valor,
-    newCusto.observacoes || '',
-  ];
-
-  await appendSheetValues(spreadsheetId, `'${SHEET_TABS.CUSTOS}'!A1`, [row]);
-
-  const allCustos = [newCusto, ...currentCustos.filter((c) => c.id !== newCusto.id)];
-  const painelRows = buildPainelDeControleRows(vagas, candidatos, allCustos, volumeCvs);
-  await updateSheetValues(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1`, painelRows);
-}
-
-/**
- * Granular sync when a new VolumeCV entry is added
- */
-export async function syncNewVolumeToSheet(
-  spreadsheetId: string,
-  newVolume: VolumeCV,
-  vagas: Vaga[],
-  candidatos: Candidato[],
-  custos: AcaoCusto[],
-  currentVolume: VolumeCV[]
-): Promise<void> {
-  const conversao =
-    newVolume.quantidade_cvs > 0
-      ? ((newVolume.quantidade_aprovados / newVolume.quantidade_cvs) * 100).toFixed(1)
-      : '0.0';
-
-  const row = [
-    newVolume.id,
-    newVolume.semana,
-    newVolume.vaga_id || '',
-    newVolume.vaga_titulo,
-    newVolume.unidade,
-    newVolume.canal,
-    newVolume.quantidade_cvs,
-    newVolume.quantidade_triados,
-    newVolume.quantidade_aprovados,
-    `${conversao}%`,
-  ];
-
-  await appendSheetValues(spreadsheetId, `'${SHEET_TABS.VOLUME}'!A1`, [row]);
-
-  const allVolume = [newVolume, ...currentVolume.filter((v) => v.id !== newVolume.id)];
-  const painelRows = buildPainelDeControleRows(vagas, candidatos, custos, allVolume);
-  await updateSheetValues(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1`, painelRows);
-}
-
-/**
- * Loads and parses full database from the master Google Sheet
- */
-export async function loadDatabaseFromGoogleSheets(
-  spreadsheetId: string
-): Promise<{
-  vagas?: Vaga[];
-  candidatos?: Candidato[];
-  custos?: AcaoCusto[];
-  volumeCvs?: VolumeCV[];
-}> {
   const result: {
     vagas?: Vaga[];
     candidatos?: Candidato[];
