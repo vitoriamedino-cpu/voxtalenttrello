@@ -15,7 +15,8 @@ export type EtapaProcesso =
   | 'Triagem'
   | '1º Contato'
   | 'Vídeo de Apresentação'
-  | 'Entrevista Coletiva/Online'
+  | 'Entrevista Coletiva (RH)'
+  | 'Entrevista Individual (RH)'
   | 'Etapa Prática'
   | 'Gestor'
   | 'Diretoria'
@@ -28,7 +29,8 @@ export type StatusCandidato =
   | 'Aprovado'
   | 'Reprovado'
   | 'Ausente'
-  | 'Desistente';
+  | 'Desistente'
+  | 'Banco de Talentos';
 
 export interface Vaga {
   id: string;

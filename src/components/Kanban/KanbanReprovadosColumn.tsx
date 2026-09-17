@@ -98,7 +98,10 @@ export const KanbanReprovadosColumn: React.FC<KanbanReprovadosColumnProps> = ({
     });
   }, [candidatos, filterEtapa, searchTerm]);
 
-  const totalReprovados = candidatos.filter((c) => c.status === 'Reprovado').length;
+  const totalReprovados = candidatos.filter(
+  (c) =>
+    c.status === 'Reprovado' ||
+    c.status === 'Desistente') .length;
 
   const handleStartEditMotivo = (cand: Candidato, e: React.MouseEvent) => {
     e.stopPropagation();

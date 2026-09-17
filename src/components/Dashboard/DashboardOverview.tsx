@@ -63,7 +63,7 @@ export const DashboardOverview: React.FC = () => {
   const coletivaPorVaga: Record<string, number> = {};
   candidatos
     .filter(
-      (c) => c.etapa_processo === 'Entrevista Coletiva/Online' && c.status === 'Em andamento'
+      (c) => c.etapa_processo === 'Entrevista Coletiva (RH)' && c.status === 'Em andamento'
     )
     .forEach((c) => {
       coletivaPorVaga[c.vaga_id] = (coletivaPorVaga[c.vaga_id] || 0) + 1;

@@ -165,13 +165,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 1. Initial State from localStorage or Constants
   const [vagas, setVagas] = useState<Vaga[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VAGAS);
-    return saved ? JSON.parse(saved) : INITIAL_VAGAS;
+return saved ? JSON.parse(saved) : [];
   });
 
   const [candidatos, setCandidatos] = useState<Candidato[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CANDIDATOS);
-    return saved ? JSON.parse(saved) : INITIAL_CANDIDATOS;
-  });
+return saved ? JSON.parse(saved) : [];  });
 
   const [templates, setTemplates] = useState<MensagemTemplate[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.TEMPLATES);
@@ -180,12 +179,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [custos, setCustos] = useState<AcaoCusto[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CUSTOS);
-    return saved ? JSON.parse(saved) : INITIAL_CUSTOS;
+return saved ? JSON.parse(saved) : [];
   });
 
   const [volumeCvs, setVolumeCvs] = useState<VolumeCV[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.VOLUME_CVS);
-    return saved ? JSON.parse(saved) : INITIAL_VOLUME_CVS;
+return saved ? JSON.parse(saved) : [];
   });
 
   const [config, setConfig] = useState<ProcessoConfig>(() => {
@@ -554,37 +553,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const moveCandidatoEtapa = (id: string, novaEtapa: EtapaProcesso, observacao?: string) => {
-    let candName = 'Candidato';
-    setCandidatos((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        candName = c.nome;
-        const now = new Date().toISOString();
-        const hojeStr = now.split('T')[0];
-        const newHist = [
-          ...c.historico_etapas,
-          {
-            etapa: novaEtapa,
-            data: hojeStr,
-            observacao: observacao || `Avançou para ${novaEtapa}`,
-          },
-        ];
-        return {
-          ...c,
-          etapa_processo: novaEtapa,
-          atualizado_em: now,
-          historico_etapas: newHist,
-        };
-      })
-    );
+ const moveCandidatoEtapa = (id: string, novaEtapa: EtapaProcesso, observacao?: string) => {
+  let candName = 'Candidato';
 
-    syncEngine.enqueueAutoSync(
-      'ETAPA_CHANGE',
-      candName,
-      `Movido para a etapa "${novaEtapa}"`
-    );
-  };
+  setCandidatos((prev) =>
+    prev.map((c) => {
+      if (c.id !== id) return c;
+
+      candName = c.nome;
+
+      const now = new Date().toISOString();
+      const hojeStr = now.split('T')[0];
+
+      const newHist = [
+        ...c.historico_etapas,
+        {
+          etapa: novaEtapa,
+          data: hojeStr,
+          observacao:
+            observacao || `Avançou para ${novaEtapa}`,
+        },
+      ];
+
+      return {
+        ...c,
+        etapa_processo: novaEtapa,
+        status:
+          c.status === 'Banco de Talentos'
+            ? 'Em andamento'
+            : c.status,
+        atualizado_em: now,
+        historico_etapas: newHist,
+      };
+    })
+  );
+
+  syncEngine.enqueueAutoSync(
+    'ETAPA_CHANGE',
+    candName,
+    `Movido para a etapa "${novaEtapa}"`
+  );
+};
 
   const batchMoveEtapa = (ids: string[], novaEtapa: EtapaProcesso, observacao?: string) => {
     const idSet = new Set(ids);

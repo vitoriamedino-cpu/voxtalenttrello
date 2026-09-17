@@ -24,14 +24,15 @@ interface KanbanColumnProps {
 }
 
 const ETAPA_ICONS: Record<EtapaProcesso, React.ReactNode> = {
-  Triagem: <Compass className="w-4 h-4 text-slate-500" />,
-  '1º Contato': <PhoneCall className="w-4 h-4 text-sky-500" />,
-  'Vídeo de Apresentação': <Video className="w-4 h-4 text-orange-500" />,
-  'Entrevista Coletiva/Online': <Users className="w-4 h-4 text-indigo-500" />,
-  'Etapa Prática': <Award className="w-4 h-4 text-teal-600" />,
-  Gestor: <CheckCircle className="w-4 h-4 text-blue-600" />,
-  Diretoria: <CheckCircle className="w-4 h-4 text-emerald-600" />,
-  'Banco de Talentos': <Archive className="w-4 h-4 text-amber-600" />,
+  Triagem: <Compass className="w-3.5 h-3.5 text-slate-500" />,
+  '1º Contato': <PhoneCall className="w-3.5 h-3.5 text-sky-500" />,
+  'Vídeo de Apresentação': <Video className="w-3.5 h-3.5 text-orange-500" />,
+  'Entrevista Coletiva (RH)': <Users className="w-3.5 h-3.5 text-indigo-500" />,
+  'Entrevista Individual (RH)': <Users className="w-3.5 h-3.5 text-purple-500" />,
+  'Etapa Prática': <Award className="w-3.5 h-3.5 text-teal-600" />,
+  Gestor: <CheckCircle className="w-3.5 h-3.5 text-blue-600" />,
+  Diretoria: <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />,
+  'Banco de Talentos': <Archive className="w-3.5 h-3.5 text-amber-600" />,
 };
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({

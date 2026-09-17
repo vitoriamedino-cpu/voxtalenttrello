@@ -231,9 +231,8 @@ export async function getSheetValues(
     throw new Error('Usuário não autenticado no Google Workspace.');
   }
 
-  const encodedRange = encodeURIComponent(range);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedRange}`;
-
+const encodedRange = encodeURIComponent(range);
+const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodedRange}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {
@@ -827,7 +826,7 @@ export async function syncCustosToSheet(
 /**
  * Pushes the full Volume dataset to the Volume tab and refreshes Painel de Controle KPIs
  */
-export async function syncVolumeToSheet(
+  export async function syncVolumeToSheet(
   spreadsheetId: string,
   volumeCvs: VolumeCV[],
   vagas: Vaga[],
@@ -835,227 +834,46 @@ export async function syncVolumeToSheet(
   custos: AcaoCusto[]
 ): Promise<void> {
   const volumeRows = buildVolumeRows(volumeCvs);
-  const painelRows = buildPainelDeControleRows(vagas, candidatos, custos, volumeCvs);
+  const painelRows = buildPainelDeControleRows(
+    vagas,
+    candidatos,
+    custos,
+    volumeCvs
+  );
 
   await Promise.all([
     (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.VOLUME}'!A1:Z500`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.VOLUME}'!A1`, volumeRows);
+      await clearSheetRange(
+        spreadsheetId,
+        `'${SHEET_TABS.VOLUME}'!A1:Z500`
+      );
+
+      await updateSheetValues(
+        spreadsheetId,
+        `'${SHEET_TABS.VOLUME}'!A1`,
+        volumeRows
+      );
     })(),
+
     (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1:Z100`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1`, painelRows);
+      await clearSheetRange(
+        spreadsheetId,
+        `'${SHEET_TABS.PAINEL}'!A1:Z100`
+      );
+
+      await updateSheetValues(
+        spreadsheetId,
+        `'${SHEET_TABS.PAINEL}'!A1`,
+        painelRows
+      );
     })(),
   ]);
-// Read Candidatos from the real recruitment sheet
-const candsValues = await getSheetValues(
-  spreadsheetId,
-  "'2. Processo Seletivo'!A2:N2000"
-);
-
-if (candsValues && candsValues.length > 0) {
-  const normalizeText = (value: unknown): string =>
-    String(value ?? '')
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-  const normalizeStage = (value: unknown): EtapaProcesso => {
-    const stage = normalizeText(value);
-
-    if (stage.includes('triagem')) return 'Triagem';
-    if (stage.includes('1') && stage.includes('contato')) return '1º Contato';
-    if (stage.includes('video')) return 'Vídeo de Apresentação';
-    if (stage.includes('coletiva')) return 'Entrevista Coletiva/Online';
-    if (stage.includes('pratica')) return 'Etapa Prática';
-    if (stage.includes('gestor')) return 'Gestor';
-    if (stage.includes('diretoria')) return 'Diretoria';
-    if (stage.includes('banco')) return 'Banco de Talentos';
-
-    return 'Triagem';
-  };
-
-  const normalizeStatus = (value: unknown): StatusCandidato => {
-    const status = normalizeText(value);
-
-    if (status.includes('aprov')) return 'Aprovado';
-    if (status.includes('reprov')) return 'Reprovado';
-    if (status.includes('ausente')) return 'Ausente';
-    if (status.includes('desist')) return 'Desistente';
-
-    return 'Em andamento';
-  };
-
-  result.candidatos = candsValues
-    .filter((r) => r[1] && r[4])
-    .map((r, idx) => {
-      const dataAtualizacao = r[0] || new Date().toISOString();
-      const idVaga = r[1] || '';
-      const vaga = r[2] || 'Vaga R&S';
-      const unidade = (r[3] as UnidadeVox) || 'Vox Tirol';
-      const nome = r[4] || '';
-      const telefone = r[6] || '';
-      const origem = r[7] || '';
-      const etapa = normalizeStage(r[8]);
-      const status = normalizeStatus(r[9]);
-      const primeiroContato = r[10] || '';
-
-      const stableId = [
-        'proc',
-        idVaga,
-        nome,
-        telefone,
-      ]
-        .map((value) =>
-          normalizeText(value).replace(/[^a-z0-9]+/g, '-')
-        )
-        .filter(Boolean)
-        .join('-') || `cand-sheet-${idx}`;
-
-      return {
-        id: stableId,
-        nome,
-        email: '',
-        telefone,
-        vaga_id: idVaga,
-        vaga_titulo: vaga,
-        unidade,
-        etapa_processo: etapa,
-        status,
-        origem_cv: origem,
-        fluxo_simplificado: false,
-
-        criado_em: primeiroContato || dataAtualizacao,
-        atualizado_em: dataAtualizacao,
-
-        historico_etapas: [
-          {
-            etapa,
-            data: dataAtualizacao,
-            observacao: 'Carregado via aba 2. Processo Seletivo',
-          },
-        ],
-      };
-    });
-}
-  const result: {
-    vagas?: Vaga[];
-    candidatos?: Candidato[];
-    custos?: AcaoCusto[];
-    volumeCvs?: VolumeCV[];
-  } = {};
-
-  try {
-    // Read Vagas
-    const vagasValues = await getSheetValues(spreadsheetId, `'${SHEET_TABS.VAGAS}'!A2:Z500`);
-    if (vagasValues && vagasValues.length > 0) {
-      result.vagas = vagasValues
-        .filter((r) => r[0] && r[1])
-        .map((r, idx) => ({
-          id: r[0] || `vaga-sheet-${idx}`,
-          titulo: r[1] || 'Vaga Vox',
-          cargo: r[2] || 'Professor',
-          unidade: (r[3] as UnidadeVox) || 'Vox Tirol',
-          status: (r[4] as StatusVaga) || 'Em aberto',
-          data_abertura: r[5] || new Date().toISOString().split('T')[0],
-          meta_sla_dias: Number(r[6]) || 10,
-          prioridade: (r[7] as any) || 'Média',
-          regime: (r[8] as any) || 'CLT',
-          salario_range: r[9] || '',
-          quantidade_vagas: Number(r[10]) || 1,
-          responsavel: r[11] || 'Luana Oliveira',
-          descricao: r[12] || '',
-        }));
-    }
-
-    // Read Candidatos
-    const candsValues = await getSheetValues(
-      spreadsheetId,
-      `'${SHEET_TABS.CANDIDATOS}'!A2:Z1000`
-    );
-    if (candsValues && candsValues.length > 0) {
-      result.candidatos = candsValues
-        .filter((r) => r[0] && r[1])
-        .map((r, idx) => ({
-          id: r[0] || `cand-sheet-${idx}`,
-          nome: r[1],
-          email: r[2] || '',
-          telefone: r[3] || '',
-          vaga_id: r[4] || '',
-          vaga_titulo: r[5] || 'Vaga R&S',
-          unidade: (r[6] as UnidadeVox) || 'Vox Tirol',
-          etapa_processo: (r[7] as EtapaProcesso) || 'Triagem',
-          status: (r[8] as StatusCandidato) || 'Em andamento',
-          origem_cv: r[9] || 'InfoJobs',
-          fluxo_simplificado: r[10] === 'Sim',
-          avaliacao_geral: Number(r[11]) || 0,
-          aula_teste_data: r[12] || undefined,
-          aula_teste_nota: r[13] ? Number(r[13]) : undefined,
-          motivo_reprovacao: r[14] || undefined,
-          notas_entrevista: r[15] || '',
-          criado_em: r[16] || new Date().toISOString(),
-          atualizado_em: r[17] || new Date().toISOString(),
-          historico_etapas: [
-            {
-              etapa: (r[7] as EtapaProcesso) || 'Triagem',
-              data: new Date().toISOString().split('T')[0],
-              observacao: 'Carregado via Google Sheets',
-            },
-          ],
-        }));
-    }
-
-    // Read Custos
-    const custosValues = await getSheetValues(
-      spreadsheetId,
-      `'${SHEET_TABS.CUSTOS}'!A2:Z500`
-    );
-    if (custosValues && custosValues.length > 0) {
-      result.custos = custosValues
-        .filter((r) => r[0])
-        .map((r, idx) => ({
-          id: r[0] || `custo-sheet-${idx}`,
-          data: r[1] || new Date().toISOString().split('T')[0],
-          vaga_id: r[2] || '',
-          vaga_titulo: r[3] || 'Geral',
-          unidade: (r[4] as UnidadeVox) || 'Vox Tirol',
-          canal: r[5] || 'Meta Ads',
-          valor: Number(r[6]) || 0,
-          observacoes: r[7] || '',
-        }));
-    }
-
-    // Read Volume
-    const volumeValues = await getSheetValues(
-      spreadsheetId,
-      `'${SHEET_TABS.VOLUME}'!A2:Z500`
-    );
-    if (volumeValues && volumeValues.length > 0) {
-      result.volumeCvs = volumeValues
-        .filter((r) => r[0])
-        .map((r, idx) => ({
-          id: r[0] || `vol-sheet-${idx}`,
-          semana: r[1] || '2026-W32',
-          vaga_id: r[2] || '',
-          vaga_titulo: r[3] || 'Geral',
-          unidade: (r[4] as UnidadeVox) || 'Vox Tirol',
-          canal: r[5] || 'InfoJobs',
-          quantidade_cvs: Number(r[6]) || 0,
-          quantidade_triados: Number(r[7]) || 0,
-          quantidade_aprovados: Number(r[8]) || 0,
-        }));
-    }
-  } catch (err) {
-    console.error('Falha ao processar dados lidos do Google Sheets:', err);
-  }
-
-  return result;
 }
 
-/**
+/** 
  * Legacy ad-hoc export functions for backwards compatibility
  */
+
 export async function exportCandidatesToSheets(candidatos: Candidato[]): Promise<SheetCreationResult> {
   const title = `VoxTalent - Exportação Candidatos [${new Date().toLocaleDateString('pt-BR')}]`;
   const result = await createGoogleSheet(title, ['Candidatos']);
@@ -1077,3 +895,379 @@ export async function exportFinancialsToSheets(
   await updateSheetValues(result.spreadsheetId, "'Volume Semanal'!A1", volumeRows);
   return result;
 }
+export async function loadDatabaseFromGoogleSheets(
+  spreadsheetId: string
+): Promise<{
+  vagas?: Vaga[];
+  candidatos?: Candidato[];
+  custos?: AcaoCusto[];
+  volumeCvs?: VolumeCV[];
+}> {
+  const result: {
+    vagas?: Vaga[];
+    candidatos?: Candidato[];
+    custos?: AcaoCusto[];
+    volumeCvs?: VolumeCV[];
+  } = {};
+
+  const normalize = (value: unknown) =>
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const toNumber = (value: unknown): number => {
+  const text = String(value ?? "")
+    .replace("R$", "")
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+    .trim();
+
+  const number = Number(text);
+  return Number.isFinite(number) ? number : 0;
+};
+
+const parseSheetDate = (value: unknown): string => {
+  const text = String(value ?? "").trim();
+
+  if (!text) return "";
+
+  const brMatch = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (brMatch) {
+    const [, day, month, year] = brMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) {
+    return text.slice(0, 10);
+  }
+
+  return text;
+};
+
+  const statusVaga = (value: unknown): StatusVaga => {
+    const text = normalize(value);
+
+    if (text.includes("aberto")) return "Em aberto";
+    if (text.includes("congel")) return "Congelada";
+    if (text.includes("cancel")) return "Cancelada";
+    if (text.includes("fech")) return "Fechada";
+
+    return "Em aberto";
+  };
+
+  const etapa = (value: unknown): EtapaProcesso => {
+    const text = normalize(value);
+
+    if (!text) return "Triagem";
+    if (text.includes("triagem")) return "Triagem";
+
+    if (text.includes("perguntas")) return "1º Contato";
+    if (text.includes("1") && text.includes("contato")) {
+      return "1º Contato";
+    }
+
+    if (text.includes("video")) {
+      return "Vídeo de Apresentação";
+    }
+
+    if (text.includes("coletiva")) {
+      return "Entrevista Coletiva (RH)";
+    }
+
+    if (text.includes("individual")) {
+      return "Entrevista Individual (RH)";
+    }
+
+    if (text.includes("pratica")) {
+      return "Etapa Prática";
+    }
+
+    if (text.includes("gestor")) {
+      return "Gestor";
+    }
+
+    if (text.includes("diretoria")) {
+      return "Diretoria";
+    }
+
+    if (text.includes("banco")) {
+      return "Banco de Talentos";
+    }
+
+    return "Triagem";
+  };
+
+  const statusCandidato = (value: unknown): StatusCandidato => {
+    const text = normalize(value);
+
+    if (text.includes("aprov")) return "Aprovado";
+    if (text.includes("reprov")) return "Reprovado";
+    if (text.includes("desist")) return "Desistente";
+    if (text.includes("banco")) return "Banco de Talentos";
+    if (text.includes("ausente")) return "Ausente";
+
+    return "Em andamento";
+  };
+
+  const getIsoWeek = (dateValue: string): string => {
+    const date = new Date(dateValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateValue || "";
+    }
+
+    const utcDate = new Date(
+      Date.UTC(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      )
+    );
+
+    const dayNumber = utcDate.getUTCDay() || 7;
+
+    utcDate.setUTCDate(
+      utcDate.getUTCDate() + 4 - dayNumber
+    );
+
+    const yearStart = new Date(
+      Date.UTC(
+        utcDate.getUTCFullYear(),
+        0,
+        1
+      )
+    );
+
+    const weekNumber = Math.ceil(
+      (((utcDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7
+    );
+
+    return `${utcDate.getUTCFullYear()}-W${String(
+      weekNumber
+    ).padStart(2, "0")}`;
+  };
+
+  try {
+    // ============================================================
+    // 1. CADASTRO DE VAGAS
+    // ============================================================
+
+    const vagasValues = await getSheetValues(
+      spreadsheetId,
+      "'1. Cadastro de Vagas'!A2:G2000"
+    );
+
+    const vagas: Vaga[] = (vagasValues || [])
+      .filter((r) => r[0] && r[1])
+      .map((r) => {
+        const id = String(r[0] || "").trim();
+        const titulo = String(r[1] || "").trim();
+        const unidade = String(r[2] || "").trim();
+
+        return {
+          id,
+          titulo,
+          cargo: titulo,
+          unidade,
+          status: statusVaga(r[3]),
+          data_abertura: parseSheetDate(r[4]),
+          meta_sla_dias: toNumber(r[6]),
+          descricao: undefined,
+          responsavel: undefined,
+          prioridade: "Média",
+          regime: "CLT",
+          salario_range: undefined,
+          quantidade_vagas: 1,
+        };
+      });
+
+    result.vagas = vagas;
+
+    const vagasPorId = new Map(
+      vagas.map((vaga) => [vaga.id, vaga])
+    );
+
+    // ============================================================
+    // 2. PROCESSO SELETIVO
+    // ============================================================
+
+    const candidatosValues = await getSheetValues(
+      spreadsheetId,
+      "'2. Processo Seletivo'!A2:N2000"
+    );
+
+    result.candidatos = (candidatosValues || [])
+      .filter((r) => r[1] && r[4])
+      .map((r, index) => {
+        const dataAtualizacao =
+          String(r[0] || new Date().toISOString()).trim();
+
+        const idVaga = String(r[1] || "").trim();
+
+        const vaga = vagasPorId.get(idVaga);
+
+        const vagaTitulo = String(
+          r[2] || vaga?.titulo || "Vaga R&S"
+        ).trim();
+
+        const unidade = String(
+          r[3] || vaga?.unidade || ""
+        ).trim();
+
+        const nome = String(r[4] || "").trim();
+        const telefone = String(r[6] || "").trim();
+        const origem = String(r[7] || "").trim();
+
+        // COLUNA I = ETAPA
+        const etapaAtual = etapa(r[8]);
+
+        // COLUNA J = STATUS
+        const statusAtual = statusCandidato(r[9]);
+
+        const primeiroContato = String(r[10] || "").trim();
+        const justificativa = String(r[13] || "").trim();
+
+        const id =
+          [
+            "proc",
+            idVaga,
+            nome,
+            telefone,
+          ]
+            .map((value) =>
+              normalize(value).replace(
+                /[^a-z0-9]+/g,
+                "-"
+              )
+            )
+            .filter(Boolean)
+            .join("-") ||
+          `cand-sheet-${index}`;
+
+        return {
+          id,
+          nome,
+          email: "",
+          telefone,
+          vaga_id: idVaga,
+          vaga_titulo: vagaTitulo,
+          unidade,
+          etapa_processo: etapaAtual,
+          status: statusAtual,
+          fluxo_simplificado: false,
+          origem_cv: origem,
+
+          criado_em:
+            primeiroContato || dataAtualizacao,
+
+          atualizado_em: dataAtualizacao,
+
+          motivo_reprovacao:
+            statusAtual === "Reprovado" || statusAtual === "Desistente"
+              ? justificativa || undefined
+              : undefined,
+
+          historico_etapas: [
+            {
+              etapa: etapaAtual,
+              data: dataAtualizacao,
+              observacao:
+                "Carregado via aba 2. Processo Seletivo",
+            },
+          ],
+        };
+      });
+
+    // ============================================================
+    // 3. AÇÕES E CUSTOS
+    // ============================================================
+
+    const custosValues = await getSheetValues(
+      spreadsheetId,
+      "'3. Ações e Custos'!A2:F2000"
+    );
+
+    result.custos = (custosValues || [])
+      .filter((r) => r[0] || r[1] || r[5])
+      .map((r, index) => {
+        const data = String(r[0] || "").trim();
+        const vagaId = String(r[1] || "").trim();
+
+        const vaga = vagasPorId.get(vagaId);
+
+        const canal = String(r[2] || "").trim();
+        const parceiro = String(r[3] || "").trim();
+        const tipoAcao = String(r[4] || "").trim();
+
+        const observacoes = [
+          parceiro
+            ? `Veículo/Parceiro: ${parceiro}`
+            : "",
+          tipoAcao
+            ? `Tipo de ação: ${tipoAcao}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" | ");
+
+        return {
+          id: `custo-${index}-${vagaId}-${data}`,
+          vaga_id: vagaId,
+          vaga_titulo:
+            vaga?.titulo || "Vaga não localizada",
+          unidade:
+            vaga?.unidade || "",
+          canal,
+          valor: toNumber(r[5]),
+          data,
+          observacoes:
+            observacoes || undefined,
+        };
+      });
+
+    // ============================================================
+    // 4. VOLUME DE CVS SEMANAL
+    // ============================================================
+
+    const volumeValues = await getSheetValues(
+      spreadsheetId,
+      "'4. Volume de CVs Semanal'!A2:C2000"
+    );
+
+    result.volumeCvs = (volumeValues || [])
+      .filter((r) => r[0] || r[1] || r[2])
+      .map((r, index) => {
+        const dataApuracao = String(r[0] || "").trim();
+        const vagaId = String(r[1] || "").trim();
+
+        const vaga = vagasPorId.get(vagaId);
+
+        return {
+          id: `volume-${index}-${vagaId}-${dataApuracao}`,
+          semana: getIsoWeek(dataApuracao),
+          vaga_id: vagaId,
+          vaga_titulo:
+            vaga?.titulo || "Vaga não localizada",
+          unidade:
+            vaga?.unidade || "",
+          canal: "",
+          quantidade_cvs: toNumber(r[2]),
+          quantidade_triados: 0,
+          quantidade_aprovados: 0,
+        };
+      });
+
+  } catch (err) {
+    console.error(
+      "Falha ao carregar dados do Google Sheets:",
+      err
+    );
+  }
+
+  return result;
+}
+

@@ -360,8 +360,10 @@ export const KanbanBoard: React.FC = () => {
     (c) => c.etapa_processo === 'Vídeo de Apresentação' && c.status !== 'Reprovado'
   ).length;
   const totalColetiva = filteredCandidatos.filter(
-    (c) => c.etapa_processo === 'Entrevista Coletiva/Online' && c.status === 'Em andamento'
-  ).length;
+  (c) =>
+    c.etapa_processo === 'Entrevista Coletiva (RH)' &&
+    c.status === 'Em andamento'
+).length;
   const totalAusentes = filteredCandidatos.filter((c) => c.status === 'Ausente').length;
   const totalReprovados = filteredCandidatos.filter((c) => c.status === 'Reprovado').length;
 
@@ -584,7 +586,7 @@ export const KanbanBoard: React.FC = () => {
               onClick={() => setKanbanFilterEtapa('TODAS')}
               className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-xs font-bold transition-all shadow-2xs"
             >
-              Mostrar Todas as 8 Etapas
+              Mostrar Todas as 9 Etapas
             </button>
           </div>
         )}
@@ -614,11 +616,16 @@ export const KanbanBoard: React.FC = () => {
               ? ETAPAS_KANBAN.filter((e) => e === kanbanFilterEtapa)
               : ETAPAS_KANBAN
             ).map((etapa) => {
-              const candidatosEtapa = filteredCandidatos.filter(
-                (c) =>
-                  c.etapa_processo === etapa &&
-                  (kanbanFilterStatus === 'Reprovado' ? c.status === 'Reprovado' : c.status !== 'Reprovado')
-              );
+            const candidatosEtapa =
+  etapa === 'Banco de Talentos'
+    ? filteredCandidatos.filter(
+        (c) => c.status === 'Banco de Talentos'
+      )
+    : filteredCandidatos.filter(
+        (c) =>
+          c.etapa_processo === etapa &&
+          (c.status === 'Em andamento' || c.status === 'Ausente')
+      );
               const sortedCandidatosEtapa = sortCandidatesList(candidatosEtapa);
 
               return (
@@ -672,11 +679,29 @@ export const KanbanBoard: React.FC = () => {
                 onOpenModal={(id) => setCandidateModalId(id)}
                 onOpenWhatsApp={(cand) => setWhatsAppModalCandidate(cand)}
                 onReativarCandidato={(id, novaEtapa) => {
-                  setCandidatoStatus(id, 'Em andamento');
-                  moveCandidatoEtapa(id, novaEtapa, 'Candidato reativado da lista suspensa de reprovações.');
-                  setBatchFeedbackToast(`Candidato reativado com sucesso para "${novaEtapa}".`);
-                  setTimeout(() => setBatchFeedbackToast(null), 3500);
-                }}
+  const novoStatus =
+    novaEtapa === 'Banco de Talentos'
+      ? 'Banco de Talentos'
+      : 'Em andamento';
+
+  setCandidatoStatus(id, novoStatus);
+
+  moveCandidatoEtapa(
+    id,
+    novaEtapa,
+    novaEtapa === 'Banco de Talentos'
+      ? 'Candidato movido para o Banco de Talentos.'
+      : 'Candidato reativado da lista suspensa de reprovações.'
+  );
+
+  setBatchFeedbackToast(
+    novaEtapa === 'Banco de Talentos'
+      ? 'Candidato movido para o Banco de Talentos.'
+      : `Candidato reativado com sucesso para "${novaEtapa}".`
+  );
+
+  setTimeout(() => setBatchFeedbackToast(null), 3500);
+}}
                 onUpdateMotivo={(id, novoMotivo) => {
                   updateCandidato(id, { motivo_reprovacao: novoMotivo });
                   setBatchFeedbackToast('Motivo de reprovação atualizado com sucesso.');

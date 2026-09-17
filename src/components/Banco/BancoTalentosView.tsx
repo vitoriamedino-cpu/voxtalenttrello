@@ -32,22 +32,35 @@ export const BancoTalentosView: React.FC = () => {
   const [cargoFilter, setCargoFilter] = useState('TODOS');
 
   // Filter candidates in Banco or past candidates
-  const bancoCandidatos = candidatos.filter((cand) => {
-    if (selectedUnidade !== 'TODAS' && cand.unidade !== selectedUnidade) return false;
-    if (cargoFilter !== 'TODOS') {
-      const vagaObj = vagas.find((v) => v.id === cand.vaga_id);
-      if (vagaObj?.cargo !== cargoFilter) return false;
-    }
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      const matchNome = cand.nome.toLowerCase().includes(term);
-      const matchVaga = cand.vaga_titulo.toLowerCase().includes(term);
-      const matchNotas = (cand.notas_entrevista || '').toLowerCase().includes(term);
-      if (!matchNome && !matchVaga && !matchNotas) return false;
-    }
-    return true;
-  });
 
+  const bancoCandidatos = candidatos.filter((cand) => {
+  if (cand.status !== 'Banco de Talentos') return false;
+
+  if (selectedUnidade !== 'TODAS' && cand.unidade !== selectedUnidade) {
+    return false;
+  }
+
+  if (cargoFilter !== 'TODOS') {
+    const vagaObj = vagas.find((v) => v.id === cand.vaga_id);
+    if (vagaObj?.cargo !== cargoFilter) return false;
+  }
+
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+
+    const matchNome = cand.nome.toLowerCase().includes(term);
+    const matchVaga = cand.vaga_titulo.toLowerCase().includes(term);
+    const matchNotas = (cand.notas_entrevista || '')
+      .toLowerCase()
+      .includes(term);
+
+    if (!matchNome && !matchVaga && !matchNotas) {
+      return false;
+    }
+  }
+
+  return true;
+});
   return (
     <div className="space-y-3.5">
       {/* Top Header */}
