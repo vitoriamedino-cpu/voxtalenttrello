@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Vaga, UnidadeVox, StatusVaga, Candidato } from '../../types';
 import { UNIDADES_VOX, CARGOS_PRESET, STATUS_VAGA } from '../../lib/rsConstants';
@@ -58,6 +58,30 @@ export const VagaModal: React.FC<VagaModalProps> = ({ vagaId, isOpen, onClose })
   const [descricao, setDescricao] = useState(existingVaga?.descricao || '');
   const [responsavel, setResponsavel] = useState(existingVaga?.responsavel || '');
   const [quantidadeVagas, setQuantidadeVagas] = useState(existingVaga?.quantidade_vagas || 1);
+useEffect(() => {
+  if (!isOpen) return;
+
+  setTitulo(existingVaga?.titulo || '');
+  setCargo(existingVaga?.cargo || 'Professor');
+  setCustomCargo('');
+  setUnidade(existingVaga?.unidade || 'Vox Cidade Verde');
+  setStatus(existingVaga?.status || 'Em aberto');
+  setDataAbertura(
+    existingVaga?.data_abertura ||
+      new Date().toISOString().split('T')[0]
+  );
+  setMetaSlaDias(
+    existingVaga?.meta_sla_dias ||
+      config.sla_padrao[existingVaga?.cargo || 'Professor'] ||
+      30
+  );
+  setPrioridade(existingVaga?.prioridade || 'Média');
+  setRegime(existingVaga?.regime || 'CLT');
+  setSalarioRange(existingVaga?.salario_range || '');
+  setDescricao(existingVaga?.descricao || '');
+  setResponsavel(existingVaga?.responsavel || '');
+  setQuantidadeVagas(existingVaga?.quantidade_vagas || 1);
+}, [vagaId, isOpen, existingVaga, config.sla_padrao]);
 
   if (!isOpen) return null;
 
@@ -399,39 +423,50 @@ export const VagasList: React.FC = () => {
     return true;
   });
 
-  // Calculate RH Interviews (Strictly RH: Coletiva e Individual pelo RH. Exclui entrevistas de Gerentes e Diretoria)
+  // Calculate RH Interviews (Strictly RH: Coletiva e Individual pelo RH)
   const rhInterviewRecords = useMemo(() => {
     return candidatos
       .map((c) => {
-        // Determine if candidate has an RH interview
+        // Entrevista coletiva pelo RH
         const isColetiva =
-          c.etapa_processo === 'Entrevista Coletiva/Online' ||
-          c.tipo_entrevista === 'Coletiva' ||
-          c.historico_etapas?.some((h) => h.etapa === 'Entrevista Coletiva/Online');
+          c.etapa_processo === 'Entrevista Coletiva (RH)' ||
+          c.historico_etapas?.some(
+            (h) => h.etapa === 'Entrevista Coletiva (RH)'
+          );
 
+        // Entrevista individual pelo RH
         const isIndividualRH =
           !isColetiva &&
-          (c.tipo_entrevista === 'Individual' ||
+          (c.etapa_processo === 'Entrevista Individual (RH)' ||
             c.etapa_processo === '1º Contato' ||
-            (c.data_entrevista && c.etapa_processo !== 'Gestor' && c.etapa_processo !== 'Diretoria'));
+            !!c.data_entrevista);
 
-        // Exclude pure Gestor / Diretoria manager interviews
-        if (!isColetiva && !isIndividualRH && !c.data_entrevista) {
+        // Se não houver nenhuma indicação de entrevista RH, ignora
+        if (!isColetiva && !isIndividualRH) {
           return null;
         }
 
-        if (c.etapa_processo === 'Gestor' || c.etapa_processo === 'Diretoria') {
-          // If they don't have historical RH interview, ignore
+        // Gestor/Diretoria entram apenas se houver histórico de entrevista RH
+        if (
+          c.etapa_processo === 'Gestor' ||
+          c.etapa_processo === 'Diretoria'
+        ) {
           const hadRHHistory = c.historico_etapas?.some(
-            (h) => h.etapa === 'Entrevista Coletiva/Online' || h.etapa === '1º Contato'
+            (h) =>
+              h.etapa === 'Entrevista Coletiva (RH)' ||
+              h.etapa === 'Entrevista Individual (RH)' ||
+              h.etapa === '1º Contato'
           );
+
           if (!hadRHHistory) return null;
         }
 
-        const interviewType: 'Coletiva' | 'Individual' = isColetiva ? 'Coletiva' : 'Individual';
+        const interviewType: 'Coletiva' | 'Individual' =
+          isColetiva ? 'Coletiva' : 'Individual';
 
         // Interview Status
         let interviewStatus: 'Agendada' | 'Realizada' | 'Ausente' = 'Agendada';
+
         if (c.status === 'Ausente') {
           interviewStatus = 'Ausente';
         } else if (
@@ -457,7 +492,9 @@ export const VagasList: React.FC = () => {
           hora: c.hora_entrevista || '14:00',
           meetLink: c.google_meet_link,
           responsavelRH: 'RH Vox2you',
-          observacoes: c.consideracoes_entrevista || c.anotacoes || 'Entrevista realizada pelo setor de R&S.',
+          observacoes:
+            c.notas_entrevista ||
+            'Entrevista realizada pelo setor de R&S.',
         };
       })
       .filter((rec): rec is NonNullable<typeof rec> => rec !== null);

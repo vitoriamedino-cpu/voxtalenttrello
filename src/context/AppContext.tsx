@@ -413,23 +413,12 @@ return saved ? JSON.parse(saved) : [];
     }
   };
 
-  // Carrega automaticamente a base real ao entrar no sistema
-  const autoLoadSheetsRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isConnected || !masterSpreadsheetId) return;
-
-    // Evita recarregar a mesma planilha várias vezes na mesma sessão
-    if (autoLoadSheetsRef.current === masterSpreadsheetId) return;
-
-    autoLoadSheetsRef.current = masterSpreadsheetId;
-
-    void loadDataFromGoogleSheets(masterSpreadsheetId);
-  }, [isConnected, masterSpreadsheetId]);
-
   const initializeMasterSheet = async (): Promise<string> => {
     setIsSheetsSyncing(true);
-    setSheetsSyncMessage('Criando e configurando planilha mestre de R&S...');
+    setSheetsSyncMessage(
+      'Criando e configurando planilha mestre de R&S...'
+    );
+
     try {
       const result = await initializeMasterSpreadsheet({
         vagas,
@@ -438,26 +427,126 @@ return saved ? JSON.parse(saved) : [];
         volumeCvs,
         contasUsuarios,
       });
-      
+
       setMasterSpreadsheetId(result.spreadsheetId);
-      const syncTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      const syncTime = new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
       setLastSheetsSyncTime(syncTime);
-      localStorage.setItem(STORAGE_KEYS.LAST_SYNC, syncTime);
-      setSheetsSyncMessage(`Planilha "${result.title}" vinculada como banco de dados principal!`);
-      setTimeout(() => setSheetsSyncMessage(null), 5000);
+
+      localStorage.setItem(
+        STORAGE_KEYS.LAST_SYNC,
+        syncTime
+      );
+
+      setSheetsSyncMessage(
+        `Planilha "${result.title}" vinculada como banco de dados principal!`
+      );
+
+      setTimeout(
+        () => setSheetsSyncMessage(null),
+        5000
+      );
+
       return result.spreadsheetId;
     } catch (err: any) {
-      console.error('Erro ao criar planilha mestre:', err);
-      setSheetsSyncMessage(`Erro ao inicializar: ${err?.message}`);
+      console.error(
+        'Erro ao criar planilha mestre:',
+        err
+      );
+
+      setSheetsSyncMessage(
+        `Erro ao inicializar: ${
+          err?.message || 'Erro desconhecido'
+        }`
+      );
+
       throw err;
     } finally {
       setIsSheetsSyncing(false);
     }
   };
 
-  const clearSyncLogs = () => {
-    syncEngine.clearLogs();
+  // Carrega automaticamente a base real do Google Sheets
+  const loadDataFromGoogleSheets = async (
+    sheetId?: string
+  ): Promise<boolean> => {
+    if (!isConnected) return false;
+
+    const targetSheetId = sheetId || masterSpreadsheetId;
+
+    if (!targetSheetId) {
+      console.warn('Nenhuma planilha principal configurada.');
+      return false;
+    }
+
+    setIsSheetsSyncing(true);
+    setSheetsSyncMessage('Carregando dados do Google Sheets...');
+
+    try {
+      const result = await loadDatabaseFromGoogleSheets(
+        targetSheetId
+      );
+
+      setVagas(result.vagas ?? []);
+      setCandidatos(result.candidatos ?? []);
+      setCustos(result.custos ?? []);
+      setVolumeCvs(result.volumeCvs ?? []);
+
+      setMasterSpreadsheetId(targetSheetId);
+      localStorage.setItem(
+        STORAGE_SHEET_ID_KEY,
+        targetSheetId
+      );
+
+      const syncTime = new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      setLastSheetsSyncTime(syncTime);
+      localStorage.setItem(
+        STORAGE_KEYS.LAST_SYNC,
+        syncTime
+      );
+
+      setSheetsSyncMessage(
+        'Dados do Google Sheets carregados com sucesso!'
+      );
+
+      setTimeout(
+        () => setSheetsSyncMessage(null),
+        3000
+      );
+
+      return true;
+    } catch (err: any) {
+      console.error(
+        'Erro ao carregar dados do Google Sheets:',
+        err
+      );
+
+      setSheetsSyncMessage(
+        `Erro ao carregar dados: ${
+          err?.message || 'Erro desconhecido'
+        }`
+      );
+
+      return false;
+    } finally {
+      setIsSheetsSyncing(false);
+    }
   };
+
+  // Carrega a base automaticamente após o login
+  useEffect(() => {
+    if (!isConnected || !masterSpreadsheetId) return;
+
+    loadDataFromGoogleSheets(masterSpreadsheetId);
+  }, [isConnected, masterSpreadsheetId]);
 
   const triggerSyncAction = (actionType: SyncActionType, entityName: string, description: string) => {
     syncEngine.enqueueAutoSync(actionType, entityName, description);
@@ -845,6 +934,10 @@ return saved ? JSON.parse(saved) : [];
     setUnidades(Object.values(DADOS_UNIDADES_VOX));
     localStorage.clear();
   };
+
+  const clearSyncLogs = () => {
+  syncEngine.clearLogs();
+};
 
   return (
     <AppContext.Provider

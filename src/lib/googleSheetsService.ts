@@ -614,6 +614,37 @@ export async function initializeMasterSpreadsheet(appData: {
   return sheetResult;
 }
 
+const mapEtapaToSheet = (etapa: EtapaProcesso): string => {
+  switch (etapa) {
+    case '1º Contato':
+      return 'Perguntas Customizadas';
+
+    case 'Vídeo de Apresentação':
+      return 'Vídeo de Apresentação';
+
+    case 'Entrevista Coletiva (RH)':
+      return 'Entrevista Coletiva (RH)';
+
+    case 'Entrevista Individual (RH)':
+      return 'Entrevista Individual (RH)';
+
+    case 'Etapa Prática':
+      return 'Etapa prática';
+
+    case 'Gestor':
+      return 'Entrevista com o Gestor';
+
+    case 'Diretoria':
+      return 'Entrevista com a Diretoria';
+
+    case 'Banco de Talentos':
+      return 'Banco de Talentos';
+
+    default:
+      return 'Triagem';
+  }
+};
+
 /**
  * Pushes the full state of the application to the Google Sheets database
  */
@@ -627,49 +658,151 @@ export async function syncAllDataToMasterSheet(
     contasUsuarios: ContaUsuario[];
   }
 ): Promise<void> {
-  const painelRows = buildPainelDeControleRows(
-    appData.vagas,
-    appData.candidatos,
-    appData.custos,
-    appData.volumeCvs
-  );
-  const vagasRows = buildVagasRows(appData.vagas);
-  const candRows = buildCandidatosRows(appData.candidatos);
-  const custosRows = buildCustosRows(appData.custos);
-  const volumeRows = buildVolumeRows(appData.volumeCvs);
-  const unidadesRows = buildUnidadesRows();
-  const contasRows = buildContasRows(appData.contasUsuarios);
+  // ============================================================
+  // 1. CADASTRO DE VAGAS
+  // ============================================================
 
-  // Clear and update each tab
+  const vagasRows = appData.vagas.map((v) => [
+    v.id,
+    v.titulo,
+    v.unidade,
+    v.status,
+    v.data_abertura || '',
+    '',
+    v.meta_sla_dias || 0,
+  ]);
+
+  // ============================================================
+  // 2. PROCESSO SELETIVO
+  // C e D são fórmulas da própria planilha.
+  // Portanto, não escrevemos nessas colunas.
+  // ============================================================
+
+  const candidatosABRows = appData.candidatos.map((c) => [
+    c.atualizado_em || '',
+    c.vaga_id || '',
+  ]);
+
+  const candidatosENRows = appData.candidatos.map((c) => [
+    c.nome || '',
+    '',
+    c.telefone || '',
+    c.origem_cv || '',
+    mapEtapaToSheet(c.etapa_processo),
+    c.status || 'Em andamento',
+    c.criado_em || '',
+    '',
+    '',
+    c.motivo_reprovacao || '',
+  ]);
+
+  // ============================================================
+  // 3. AÇÕES E CUSTOS
+  // ============================================================
+
+  const custosRows = appData.custos.map((c) => {
+    const parceiro =
+      c.observacoes?.match(/Veículo\/Parceiro:\s*(.*?)(?:\s*\||$)/)?.[1] || '';
+
+    const tipoAcao =
+      c.observacoes?.match(/Tipo de ação:\s*(.*?)(?:\s*\||$)/)?.[1] || '';
+
+    return [
+      c.data || '',
+      c.vaga_id || '',
+      c.canal || '',
+      parceiro,
+      tipoAcao,
+      c.valor || 0,
+    ];
+  });
+
+  // ============================================================
+  // 4. VOLUME DE CVS SEMANAL
+  // ============================================================
+
+  const volumeRows = appData.volumeCvs.map((v) => [
+    v.data_apuracao || '',
+    v.vaga_id || '',
+    v.quantidade_cvs || 0,
+  ]);
+
+  // ============================================================
+  // LIMPEZA
+  // Mantém os cabeçalhos e as fórmulas da planilha.
+  // ============================================================
+
   await Promise.all([
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1:Z100`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.PAINEL}'!A1`, painelRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.VAGAS}'!A1:Z500`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.VAGAS}'!A1`, vagasRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.CANDIDATOS}'!A1:Z1000`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.CANDIDATOS}'!A1`, candRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.CUSTOS}'!A1:Z500`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.CUSTOS}'!A1`, custosRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.VOLUME}'!A1:Z500`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.VOLUME}'!A1`, volumeRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.UNIDADES}'!A1:Z50`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.UNIDADES}'!A1`, unidadesRows);
-    })(),
-    (async () => {
-      await clearSheetRange(spreadsheetId, `'${SHEET_TABS.CONTAS}'!A1:Z100`);
-      await updateSheetValues(spreadsheetId, `'${SHEET_TABS.CONTAS}'!A1`, contasRows);
-    })(),
+    clearSheetRange(
+      spreadsheetId,
+      "'1. Cadastro de Vagas'!A2:G2000"
+    ),
+
+    clearSheetRange(
+      spreadsheetId,
+      "'2. Processo Seletivo'!A2:B2000"
+    ),
+
+    clearSheetRange(
+      spreadsheetId,
+      "'2. Processo Seletivo'!E2:N2000"
+    ),
+
+    clearSheetRange(
+      spreadsheetId,
+      "'3. Ações e Custos'!A2:F2000"
+    ),
+
+    clearSheetRange(
+      spreadsheetId,
+      "'4. Volume de CVs Semanal'!A2:C2000"
+    ),
+  ]);
+
+  // ============================================================
+  // ESCRITA
+  // ============================================================
+
+  await Promise.all([
+    vagasRows.length > 0
+      ? updateSheetValues(
+          spreadsheetId,
+          "'1. Cadastro de Vagas'!A2",
+          vagasRows
+        )
+      : Promise.resolve(),
+
+    candidatosABRows.length > 0
+      ? updateSheetValues(
+          spreadsheetId,
+          "'2. Processo Seletivo'!A2",
+          candidatosABRows
+        )
+      : Promise.resolve(),
+
+    candidatosENRows.length > 0
+      ? updateSheetValues(
+          spreadsheetId,
+          "'2. Processo Seletivo'!E2",
+          candidatosENRows
+        )
+      : Promise.resolve(),
+
+    custosRows.length > 0
+      ? updateSheetValues(
+          spreadsheetId,
+          "'3. Ações e Custos'!A2",
+          custosRows
+        )
+      : Promise.resolve(),
+
+    volumeRows.length > 0
+      ? updateSheetValues(
+          spreadsheetId,
+          "'4. Volume de CVs Semanal'!A2",
+          volumeRows
+        )
+      : Promise.resolve(),
   ]);
 }
 
@@ -959,47 +1092,57 @@ const parseSheetDate = (value: unknown): string => {
     return "Em aberto";
   };
 
-  const etapa = (value: unknown): EtapaProcesso => {
-    const text = normalize(value);
+ const etapa = (value: unknown): EtapaProcesso => {
+  const text = normalize(value);
 
-    if (!text) return "Triagem";
-    if (text.includes("triagem")) return "Triagem";
+  if (!text) return "Triagem";
 
-    if (text.includes("perguntas")) return "1º Contato";
-    if (text.includes("1") && text.includes("contato")) {
-      return "1º Contato";
-    }
-
-    if (text.includes("video")) {
-      return "Vídeo de Apresentação";
-    }
-
-    if (text.includes("coletiva")) {
-      return "Entrevista Coletiva (RH)";
-    }
-
-    if (text.includes("individual")) {
-      return "Entrevista Individual (RH)";
-    }
-
-    if (text.includes("pratica")) {
-      return "Etapa Prática";
-    }
-
-    if (text.includes("gestor")) {
-      return "Gestor";
-    }
-
-    if (text.includes("diretoria")) {
-      return "Diretoria";
-    }
-
-    if (text.includes("banco")) {
-      return "Banco de Talentos";
-    }
-
+  if (text.includes("triagem")) {
     return "Triagem";
-  };
+  }
+
+  if (
+    text.includes("perguntas") ||
+    text.includes("1º contato") ||
+    text.includes("1o contato") ||
+    text.includes("primeiro contato")
+  ) {
+    return "1º Contato";
+  }
+
+  if (
+    text.includes("video") ||
+    text.includes("vídeo")
+  ) {
+    return "Vídeo de Apresentação";
+  }
+
+  if (text.includes("coletiva")) {
+    return "Entrevista Coletiva (RH)";
+  }
+
+  if (text.includes("individual")) {
+    return "Entrevista Individual (RH)";
+  }
+
+  if (text.includes("pratica") || text.includes("prática")) {
+    return "Etapa Prática";
+  }
+
+  if (text.includes("gestor")) {
+    return "Gestor";
+  }
+
+  if (text.includes("diretoria")) {
+    return "Diretoria";
+  }
+
+  if (text.includes("banco")) {
+    return "Banco de Talentos";
+  }
+
+  return "Triagem";
+};
 
   const statusCandidato = (value: unknown): StatusCandidato => {
     const text = normalize(value);
@@ -1099,6 +1242,14 @@ const parseSheetDate = (value: unknown): string => {
       spreadsheetId,
       "'2. Processo Seletivo'!A2:N2000"
     );
+    console.table(
+  (candidatosValues || []).slice(0, 20).map((r) => ({
+    nome: r[4],
+    colunaH: r[7],
+    colunaI_ETAPA: r[8],
+    colunaJ_STATUS: r[9],
+  }))
+);
 
     result.candidatos = (candidatosValues || [])
       .filter((r) => r[1] && r[4])
@@ -1122,11 +1273,34 @@ const parseSheetDate = (value: unknown): string => {
         const telefone = String(r[6] || "").trim();
         const origem = String(r[7] || "").trim();
 
-        // COLUNA I = ETAPA
-        const etapaAtual = etapa(r[8]);
+const etapaOriginal = String(r[8] || "").trim();
 
-        // COLUNA J = STATUS
-        const statusAtual = statusCandidato(r[9]);
+const valorI = String(r[8] || "").trim();
+const valorJ = String(r[9] || "").trim();
+
+const iEhStatus = [
+  "Aprovado",
+  "Reprovado",
+  "Desistente",
+  "Ausente",
+  "Banco de Talentos",
+].includes(valorI);
+
+const jEhStatus = [
+  "Aprovado",
+  "Reprovado",
+  "Desistente",
+  "Ausente",
+  "Banco de Talentos",
+].includes(valorJ);
+
+const etapaAtual = iEhStatus && !jEhStatus
+  ? etapa(valorJ)
+  : etapa(valorI);
+
+const statusAtual = iEhStatus && !jEhStatus
+  ? statusCandidato(valorI)
+  : statusCandidato(valorJ);
 
         const primeiroContato = String(r[10] || "").trim();
         const justificativa = String(r[13] || "").trim();
@@ -1247,8 +1421,9 @@ const parseSheetDate = (value: unknown): string => {
         const vaga = vagasPorId.get(vagaId);
 
         return {
-          id: `volume-${index}-${vagaId}-${dataApuracao}`,
-          semana: getIsoWeek(dataApuracao),
+  id: `volume-${index}-${vagaId}-${dataApuracao}`,
+  semana: getIsoWeek(dataApuracao),
+  data_apuracao: dataApuracao,
           vaga_id: vagaId,
           vaga_titulo:
             vaga?.titulo || "Vaga não localizada",

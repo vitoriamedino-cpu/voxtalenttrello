@@ -122,6 +122,7 @@ export interface AcaoCusto {
 export interface VolumeCV {
   id: string;
   semana: string; // ex: 2026-W32
+  data_apuracao?: string; // data original da aba "4. Volume de CVs Semanal"
   vaga_id: string;
   vaga_titulo: string;
   unidade: UnidadeVox;
