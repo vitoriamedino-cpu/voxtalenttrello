@@ -413,46 +413,19 @@ return saved ? JSON.parse(saved) : [];
     }
   };
 
-  const loadDataFromGoogleSheets = async (customSheetId?: string): Promise<boolean> => {
-    const sheetId = customSheetId || masterSpreadsheetId;
-    if (!sheetId || !isConnected) return false;
+  // Carrega automaticamente a base real ao entrar no sistema
+  const autoLoadSheetsRef = useRef<string | null>(null);
 
-    setIsSheetsSyncing(true);
-    setSheetsSyncMessage('Carregando dados do Google Sheets...');
-    try {
-      const data = await loadDatabaseFromGoogleSheets(sheetId);
-      let updatedCount = 0;
+  useEffect(() => {
+    if (!isConnected || !masterSpreadsheetId) return;
 
-      if (data.vagas && data.vagas.length > 0) {
-        setVagas(data.vagas);
-        updatedCount += data.vagas.length;
-      }
-      if (data.candidatos && data.candidatos.length > 0) {
-        setCandidatos(data.candidatos);
-        updatedCount += data.candidatos.length;
-      }
-      if (data.custos && data.custos.length > 0) {
-        setCustos(data.custos);
-      }
-      if (data.volumeCvs && data.volumeCvs.length > 0) {
-        setVolumeCvs(data.volumeCvs);
-      }
+    // Evita recarregar a mesma planilha várias vezes na mesma sessão
+    if (autoLoadSheetsRef.current === masterSpreadsheetId) return;
 
-      const syncTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      setLastSheetsSyncTime(syncTime);
-      localStorage.setItem(STORAGE_KEYS.LAST_SYNC, syncTime);
-      setSheetsSyncMessage(`Dados carregados com sucesso do Google Sheets! (${updatedCount} registros)`);
-      setTimeout(() => setSheetsSyncMessage(null), 4000);
-      return true;
-    } catch (err: any) {
-      console.error('Erro ao carregar dados do Google Sheets:', err);
-      setSheetsSyncMessage(`Erro ao ler planilha: ${err?.message || 'Verifique permissões'}`);
-      setTimeout(() => setSheetsSyncMessage(null), 6000);
-      return false;
-    } finally {
-      setIsSheetsSyncing(false);
-    }
-  };
+    autoLoadSheetsRef.current = masterSpreadsheetId;
+
+    void loadDataFromGoogleSheets(masterSpreadsheetId);
+  }, [isConnected, masterSpreadsheetId]);
 
   const initializeMasterSheet = async (): Promise<string> => {
     setIsSheetsSyncing(true);
@@ -465,6 +438,7 @@ return saved ? JSON.parse(saved) : [];
         volumeCvs,
         contasUsuarios,
       });
+      
       setMasterSpreadsheetId(result.spreadsheetId);
       const syncTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       setLastSheetsSyncTime(syncTime);
