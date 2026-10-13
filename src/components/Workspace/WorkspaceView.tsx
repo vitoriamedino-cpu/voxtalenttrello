@@ -93,6 +93,8 @@ export const WorkspaceView: React.FC = () => {
   const [exportedSheets, setExportedSheets] = useState<SheetCreationResult[]>([]);
   const [isExportingSheets, setIsExportingSheets] = useState(false);
   const [sheetsSuccessMessage, setSheetsSuccessMessage] = useState<string | null>(null);
+  const [existingSheetInput, setExistingSheetInput] = useState('');
+  const [isLinkingSheet, setIsLinkingSheet] = useState(false);
 
   // Forms state
   const [formsList, setFormsList] = useState<FormCreationResult[]>(() => {
@@ -778,10 +780,53 @@ export const WorkspaceView: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-2 w-full lg:max-w-md">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200" htmlFor="existing-sheet-id">
+                      Vincular planilha oficial existente
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        id="existing-sheet-id"
+                        type="text"
+                        value={existingSheetInput}
+                        onChange={(e) => setExistingSheetInput(e.target.value)}
+                        placeholder="Cole o link ou ID da planilha"
+                        className="min-w-0 flex-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        disabled={isLinkingSheet || isSheetsSyncing || !existingSheetInput.trim() || !isConnected}
+                        onClick={async () => {
+                          const raw = existingSheetInput.trim();
+                          const match = raw.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+                          const id = match?.[1] || raw;
+                          if (!/^[a-zA-Z0-9_-]{20,}$/.test(id)) {
+                            setSheetsSuccessMessage('Link/ID inválido. Cole o endereço completo da planilha Google.');
+                            return;
+                          }
+                          setIsLinkingSheet(true);
+                          try {
+                            const loaded = await loadDataFromGoogleSheets(id);
+                            if (loaded) {
+                              setExistingSheetInput('');
+                              setSheetsSuccessMessage('Planilha vinculada e dados carregados. A sincronização automática está pronta.');
+                            }
+                          } finally {
+                            setIsLinkingSheet(false);
+                          }
+                        }}
+                        className="rounded-xl bg-teal-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                      >
+                        {isLinkingSheet ? 'Vinculando...' : 'Vincular e carregar'}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Carrega os dados existentes primeiro; não faz push automático durante o vínculo.</p>
+                  </div>
+
                   <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <button
                       type="button"
-                      disabled={isSheetsSyncing}
+                      disabled={isSheetsSyncing || !masterSpreadsheetId}
                       onClick={() => syncWithGoogleSheets(true)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all active:scale-95 disabled:opacity-50"
                     >

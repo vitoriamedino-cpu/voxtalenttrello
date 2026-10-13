@@ -142,8 +142,7 @@ if (!user) {
       <CandidatePdfModal
         isOpen={!!candidatePdfModalId && !!pdfCandidate}
         onClose={() => setCandidatePdfModalId(null)}
-        candidato={pdfCandidate}
-        vaga={pdfCandidate ? getVagaById(pdfCandidate.vaga_id) : null}
+        candidateId={candidatePdfModalId}
       />
 
       <EtapaListModal

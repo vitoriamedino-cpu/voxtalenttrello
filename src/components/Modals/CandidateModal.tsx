@@ -840,7 +840,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
           onClose={() => setIsScheduleModalOpen(false)}
           candidato={candidato}
           vaga={vaga}
-          onScheduled={handleScheduleSuccess}
+          onSuccess={handleScheduleSuccess}
         />
       )}
     </div>

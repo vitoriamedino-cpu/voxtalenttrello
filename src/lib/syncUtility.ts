@@ -6,12 +6,7 @@ import {
   ContaUsuario,
 } from '../types';
 import {
-  syncCandidatosToSheet,
-  syncVagasToSheet,
-  syncCustosToSheet,
-  syncVolumeToSheet,
   syncAllDataToMasterSheet,
-  initializeMasterSpreadsheet,
   SHEET_TABS,
 } from './googleSheetsService';
 
@@ -316,61 +311,9 @@ export class GoogleSheetsSyncEngine {
         );
       }
 
-      if (isFullSync) {
-        await syncAllDataToMasterSheet(sheetId, appData);
-      } else {
-        const tasks: Promise<any>[] = [];
-
-        if (hasCandidateChanges) {
-          tasks.push(
-            syncCandidatosToSheet(
-              sheetId,
-              appData.candidatos,
-              appData.vagas,
-              appData.custos,
-              appData.volumeCvs
-            )
-          );
-        }
-
-        if (hasVagaChanges) {
-          tasks.push(
-            syncVagasToSheet(
-              sheetId,
-              appData.vagas,
-              appData.candidatos,
-              appData.custos,
-              appData.volumeCvs
-            )
-          );
-        }
-
-        if (hasCustoChanges) {
-          tasks.push(
-            syncCustosToSheet(
-              sheetId,
-              appData.custos,
-              appData.vagas,
-              appData.candidatos,
-              appData.volumeCvs
-            )
-          );
-        }
-
-        if (hasVolumeChanges) {
-          tasks.push(
-            syncVolumeToSheet(
-              sheetId,
-              appData.volumeCvs,
-              appData.vagas,
-              appData.candidatos,
-              appData.custos
-            )
-          );
-        }
-
-        await Promise.all(tasks);
-      }
+      // Use the official workbook schema for both full and incremental changes.
+      // The current data snapshot is loaded from the linked spreadsheet first.
+      await syncAllDataToMasterSheet(sheetId, appData);
 
       const durationMs = Date.now() - startTime;
       this.status = 'synced';
@@ -403,4 +346,23 @@ export class GoogleSheetsSyncEngine {
 
       this.addLog(errorLog);
     }
-  }}
+  }
+
+  /** Forces a full synchronization of all modules to Google Sheets. */
+  public async forceFullSync(customDescription = 'Sincronização Manual Forçada'): Promise<void> {
+    this.enqueueAutoSync('FULL_SYNC', 'Planilha Mestre', customDescription, 50);
+    await this.flushQueue();
+  }
+
+  /** Clears the sync logs history. */
+  public clearLogs(): void {
+    this.logs = [];
+    persistLogs([]);
+    this.lastSuccessLog = null;
+    this.lastSyncTime = null;
+    this.errorMessage = null;
+    this.notify();
+  }
+}
+
+export const syncEngine = new GoogleSheetsSyncEngine();

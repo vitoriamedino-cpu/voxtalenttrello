@@ -34,8 +34,8 @@ const ETAPA_ICONS: Record<EtapaProcesso, React.ReactNode> = {
   Triagem: <Compass className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />,
   '1º Contato': <PhoneCall className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />,
   'Vídeo de Apresentação': <Video className="w-3.5 h-3.5 text-orange-500 dark:text-orange-400" />,
-  'Entrevista Coletiva/Online': <Users className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />,
-  'Etapa Prática': <Award className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />,
+  'Entrevista Coletiva (RH)': <Users className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />,
+  'Entrevista Individual (RH)': <Users className="w-3.5 h-3.5 text-indigo-500" />,  'Etapa Prática': <Award className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />,
   Gestor: <CheckCircle className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />,
   Diretoria: <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
   'Banco de Talentos': <Archive className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
@@ -113,7 +113,7 @@ export const KanbanStatistics: React.FC<KanbanStatisticsProps> = ({
           ? 1.8
           : etapa === 'Vídeo de Apresentação'
           ? 2.6
-          : etapa === 'Entrevista Coletiva/Online'
+          : etapa === 'Entrevista Coletiva (RH)'
           ? 4.2
           : etapa === 'Etapa Prática'
           ? 3.1

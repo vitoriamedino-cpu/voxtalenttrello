@@ -144,7 +144,7 @@ export const MensagensView: React.FC = () => {
                 <Filter className="w-3 h-3" />
                 Filtro:
               </span>
-              {['TODOS', '1º Contato', 'Vídeo de Apresentação', 'Entrevista Coletiva/Online', 'Etapa Prática', 'Banco de Talentos'].map((et) => (
+              {['TODOS', '1º Contato', 'Vídeo de Apresentação', 'Entrevista Coletiva (RH)', 'Etapa Prática', 'Banco de Talentos'].map((et) => (
                 <button
                   key={et}
                   type="button"

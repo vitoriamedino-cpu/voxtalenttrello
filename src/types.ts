@@ -9,6 +9,9 @@ export interface UnidadeVoxInfo {
   uf: string;
   telefoneContato?: string;
   gerenteLocal?: string;
+  /** Campos legados usados pelo formulário de unidades. */
+  gestor?: string;
+  telefone?: string;
 }
 
 export type EtapaProcesso =
@@ -75,6 +78,15 @@ export interface Candidato {
   avaliacao_geral?: number; // 1 to 5
   motivo_reprovacao?: string;
   origem_cv?: string; // InfoJobs, LinkedIn, Instagram, Indicação
+  /** Compatibilidade com registros antigos. */
+  origem?: string;
+  data_inscricao?: string;
+  historico_whatsapp?: Array<{
+    data_envio: string;
+    tipo: string;
+    template_nome: string;
+    texto_enviado: string;
+  }>;
   data_entrevista?: string; // YYYY-MM-DD
   hora_entrevista?: string; // HH:mm
   google_calendar_event_id?: string;

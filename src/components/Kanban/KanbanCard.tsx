@@ -73,7 +73,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({
 
   // Agendamento Visual Status
   const isInterviewStage = [
-    'Entrevista Coletiva/Online',
+    'Entrevista Coletiva (RH)',
     'Etapa Prática',
     'Gestor',
     'Diretoria',

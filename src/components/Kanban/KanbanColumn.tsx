@@ -52,7 +52,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onAgendarColetiva,
 }) => {
   const { setListModalEtapa } = useApp();
-  const isColetiva = etapa === 'Entrevista Coletiva/Online';
+  const isColetiva = etapa === 'Entrevista Coletiva (RH)';
   const isVideo = etapa === 'Vídeo de Apresentação';
 
   const allColumnSelected =

@@ -136,7 +136,7 @@ export const GlobalSearchBar: React.FC = () => {
         return 'bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800';
       case 'Vídeo de Apresentação':
         return 'bg-orange-50 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800';
-      case 'Entrevista Coletiva/Online':
+      case 'Entrevista Coletiva (RH)':
         return 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800';
       case 'Etapa Prática':
         return 'bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800';

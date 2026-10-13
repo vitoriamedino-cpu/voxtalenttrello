@@ -303,7 +303,7 @@ export const DashboardOverview: React.FC = () => {
               const percent = Math.round((count / maxCount) * 100);
 
               const isVideo = etapa === 'Vídeo de Apresentação';
-              const isColetiva = etapa === 'Entrevista Coletiva/Online';
+              const isColetiva = etapa === 'Entrevista Coletiva (RH)';
 
               return (
                 <div

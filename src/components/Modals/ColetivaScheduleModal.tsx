@@ -38,12 +38,12 @@ export const ColetivaScheduleModal: React.FC<ColetivaScheduleModalProps> = ({
   const candidatosColetiva = candidatos.filter(
     (c) =>
       c.vaga_id === vagaId &&
-      c.etapa_processo === 'Entrevista Coletiva/Online' &&
+      c.etapa_processo === 'Entrevista Coletiva (RH)' &&
       c.status === 'Em andamento'
   );
 
   const coletivaTemplate =
-    templates.find((t) => t.etapa === 'Entrevista Coletiva/Online') || templates[0];
+    templates.find((t) => t.etapa === 'Entrevista Coletiva (RH)') || templates[0];
 
   const defaultDateTomorrow = () => {
     const d = new Date();

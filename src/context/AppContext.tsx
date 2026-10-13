@@ -140,6 +140,7 @@ interface AppContextType {
 
   // Helpers
   getVagaById: (id: string) => Vaga | undefined;
+  getCandidatoById: (id: string) => Candidato | undefined;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -378,26 +379,20 @@ return saved ? JSON.parse(saved) : [];
     setSheetsSyncMessage('Sincronizando banco de dados com o Google Sheets...');
 
     try {
-      let sheetId = masterSpreadsheetId;
+      const sheetId = masterSpreadsheetId;
       if (!sheetId) {
-        const initResult = await initializeMasterSpreadsheet({
-          vagas,
-          candidatos,
-          custos,
-          volumeCvs,
-          contasUsuarios,
-        });
-        sheetId = initResult.spreadsheetId;
-        setMasterSpreadsheetId(sheetId);
-      } else {
-        await syncAllDataToMasterSheet(sheetId, {
-          vagas,
-          candidatos,
-          custos,
-          volumeCvs,
-          contasUsuarios,
-        });
+        throw new Error(
+          'Nenhuma planilha oficial vinculada. Cole o link/ID da planilha existente e carregue os dados antes de sincronizar.'
+        );
       }
+
+      await syncAllDataToMasterSheet(sheetId, {
+        vagas,
+        candidatos,
+        custos,
+        volumeCvs,
+        contasUsuarios,
+      });
 
       const syncTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       setLastSheetsSyncTime(syncTime);
@@ -553,6 +548,7 @@ return saved ? JSON.parse(saved) : [];
   };
 
   const getVagaById = (id: string) => vagas.find((v) => v.id === id);
+  const getCandidatoById = (id: string) => candidatos.find((c) => c.id === id);
 
   // Candidato Actions with Automatic Google Sheets Sync Push
   const addCandidato = (data: Omit<Candidato, 'id' | 'criado_em' | 'atualizado_em' | 'historico_etapas'>): Candidato => {
@@ -1026,6 +1022,7 @@ return saved ? JSON.parse(saved) : [];
         updateTemplate,
         resetAllData,
         getVagaById,
+        getCandidatoById,
       }}
     >
       {children}
