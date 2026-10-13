@@ -195,6 +195,7 @@ export class GoogleSheetsSyncEngine {
   /**
    * Immediately flushes and processes queued sync actions.
    */
+
   public async flushQueue(): Promise<void> {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
@@ -214,6 +215,7 @@ export class GoogleSheetsSyncEngine {
 
     const actionTypes = Array.from(this.queuedActionTypes);
     const descriptions = [...this.queuedDescriptions];
+
     this.queuedActionTypes.clear();
     this.queuedDescriptions = [];
     this.pendingCount = 0;
@@ -230,9 +232,12 @@ export class GoogleSheetsSyncEngine {
 
     const logId = `sync-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const now = new Date();
-    const timeFormatted = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const timeFormatted = now.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
 
-    // Determine target tabs
     const hasCandidateChanges = actionTypes.some((t) =>
       [
         'STATUS_CHANGE',
@@ -257,11 +262,21 @@ export class GoogleSheetsSyncEngine {
       ['NEW_VOLUME', 'DELETE_VOLUME'].includes(t)
     );
 
-    const isFullSync = actionTypes.includes('FULL_SYNC') || (hasCandidateChanges && hasVagaChanges && hasCustoChanges);
+    const isFullSync =
+      actionTypes.includes('FULL_SYNC') ||
+      (hasCandidateChanges && hasVagaChanges && hasCustoChanges);
 
     const targetTabs: string[] = [SHEET_TABS.PAINEL];
+
     if (isFullSync) {
-      targetTabs.push(SHEET_TABS.VAGAS, SHEET_TABS.CANDIDATOS, SHEET_TABS.CUSTOS, SHEET_TABS.VOLUME, SHEET_TABS.UNIDADES, SHEET_TABS.CONTAS);
+      targetTabs.push(
+        SHEET_TABS.VAGAS,
+        SHEET_TABS.CANDIDATOS,
+        SHEET_TABS.CUSTOS,
+        SHEET_TABS.VOLUME,
+        SHEET_TABS.UNIDADES,
+        SHEET_TABS.CONTAS
+      );
     } else {
       if (hasCandidateChanges) targetTabs.push(SHEET_TABS.CANDIDATOS);
       if (hasVagaChanges) targetTabs.push(SHEET_TABS.VAGAS);
@@ -279,75 +294,82 @@ export class GoogleSheetsSyncEngine {
       timestamp: now.toISOString(),
       timeFormatted,
       actionType: actionTypes[0] || 'FULL_SYNC',
-      entityName: isFullSync ? 'Banco de Dados Completo' : targetTabs.join(', '),
+      entityName: isFullSync
+        ? 'Banco de Dados Completo'
+        : targetTabs.join(', '),
       description: summaryDesc,
       status: 'pending',
       targetTabs,
     };
+
     this.addLog(pendingLog);
 
     try {
-      let sheetId = this.getSpreadsheetId();
+      const sheetId = this.getSpreadsheetId();
       const appData = this.getLatestData();
 
-      // If no master spreadsheet exists yet, initialize it
+      // Não criar uma nova planilha automaticamente.
       if (!sheetId) {
-        const initResult = await initializeMasterSpreadsheet(appData);
-        sheetId = initResult.spreadsheetId;
-        if (this.onMasterSheetCreated) {
-          this.onMasterSheetCreated(sheetId);
-        }
+        throw new Error(
+          'Nenhuma planilha oficial configurada. ' +
+            'Configure o ID antes de sincronizar.'
+        );
+      }
+
+      if (isFullSync) {
+        await syncAllDataToMasterSheet(sheetId, appData);
       } else {
-        // Targeted sync for maximum performance and rate-limit friendliness
-        if (isFullSync) {
-          await syncAllDataToMasterSheet(sheetId, appData);
-        } else {
-          const tasks: Promise<any>[] = [];
+        const tasks: Promise<any>[] = [];
 
-          if (hasCandidateChanges) {
-            tasks.push(
-              syncCandidatosToSheet(
-                sheetId,
-                appData.candidatos,
-                appData.vagas,
-                appData.custos,
-                appData.volumeCvs
-              )
-            );
-          } else if (hasVagaChanges) {
-            tasks.push(
-              syncVagasToSheet(
-                sheetId,
-                appData.vagas,
-                appData.candidatos,
-                appData.custos,
-                appData.volumeCvs
-              )
-            );
-          } else if (hasCustoChanges) {
-            tasks.push(
-              syncCustosToSheet(
-                sheetId,
-                appData.custos,
-                appData.vagas,
-                appData.candidatos,
-                appData.volumeCvs
-              )
-            );
-          } else if (hasVolumeChanges) {
-            tasks.push(
-              syncVolumeToSheet(
-                sheetId,
-                appData.volumeCvs,
-                appData.vagas,
-                appData.candidatos,
-                appData.custos
-              )
-            );
-          }
-
-          await Promise.all(tasks);
+        if (hasCandidateChanges) {
+          tasks.push(
+            syncCandidatosToSheet(
+              sheetId,
+              appData.candidatos,
+              appData.vagas,
+              appData.custos,
+              appData.volumeCvs
+            )
+          );
         }
+
+        if (hasVagaChanges) {
+          tasks.push(
+            syncVagasToSheet(
+              sheetId,
+              appData.vagas,
+              appData.candidatos,
+              appData.custos,
+              appData.volumeCvs
+            )
+          );
+        }
+
+        if (hasCustoChanges) {
+          tasks.push(
+            syncCustosToSheet(
+              sheetId,
+              appData.custos,
+              appData.vagas,
+              appData.candidatos,
+              appData.volumeCvs
+            )
+          );
+        }
+
+        if (hasVolumeChanges) {
+          tasks.push(
+            syncVolumeToSheet(
+              sheetId,
+              appData.volumeCvs,
+              appData.vagas,
+              appData.candidatos,
+              appData.custos
+            )
+          );
+        }
+
+        await Promise.all(tasks);
       }
 
       const durationMs = Date.now() - startTime;
@@ -359,40 +381,26 @@ export class GoogleSheetsSyncEngine {
         status: 'success',
         durationMs,
       };
+
       this.addLog(successLog);
     } catch (err: any) {
-      console.error('Falha no motor de sincronização automática com Google Sheets:', err);
+      console.error(
+        'Falha no motor de sincronização automática com Google Sheets:',
+        err
+      );
+
       const durationMs = Date.now() - startTime;
       this.status = 'error';
-      this.errorMessage = err?.message || 'Falha ao sincronizar com Google Sheets';
+      this.errorMessage =
+        err?.message || 'Falha ao sincronizar com Google Sheets';
 
       const errorLog: SyncLogEntry = {
         ...pendingLog,
         status: 'error',
         durationMs,
-        errorMessage: this.errorMessage,
+          errorMessage: this.errorMessage || 'Falha ao sincronizar com Google Sheets',
       };
+
       this.addLog(errorLog);
     }
-  }
-
-  /**
-   * Forces a full synchronization of all modules to Google Sheets.
-   */
-  public async forceFullSync(customDescription = 'Sincronização Manual Forçada'): Promise<void> {
-    this.enqueueAutoSync('FULL_SYNC', 'Planilha Mestre', customDescription, 50);
-    await this.flushQueue();
-  }
-
-  /**
-   * Clears the sync logs history
-   */
-  public clearLogs(): void {
-    this.logs = [];
-    persistLogs([]);
-    this.notify();
-  }
-}
-
-// Singleton global sync engine instance
-export const syncEngine = new GoogleSheetsSyncEngine();
+  }}
