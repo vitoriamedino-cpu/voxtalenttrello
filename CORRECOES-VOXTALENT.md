@@ -27,3 +27,10 @@ O build Vite não pôde ser validado neste ambiente Linux porque o `node_modules
 3. Abra o app e, na área Workspace > Google Sheets, vincule a planilha oficial existente pelo link ou ID.
 4. Confirme que os dados carregaram antes de fazer alterações.
 5. Não use “Criar / Vincular Nova Planilha Mestre” se quiser continuar usando a planilha atual.
+
+## Correção adicional — importação de etapas e status
+- A importação agora reconhece etapa e status pelo conteúdo das colunas I/J, inclusive quando essas colunas vierem invertidas em uma versão antiga da planilha.
+- O reconhecimento de etapa aceita variações de texto (acentos, nomes de entrevista, vídeo, etapa prática, gestor/diretoria) e só usa Triagem como padrão quando nenhuma das duas células contém uma etapa reconhecida.
+- Status com variações de texto são reconhecidos por correspondência parcial, evitando que valores como “Aprovado ...” ou “Em andamento ...” sejam ignorados.
+- Removido o `console.table` temporário da importação.
+- Não sincronize/puxe alterações para a planilha antes de confirmar que a importação posicionou os candidatos corretamente.

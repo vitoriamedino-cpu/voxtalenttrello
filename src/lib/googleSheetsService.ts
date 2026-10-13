@@ -1092,68 +1092,32 @@ const parseSheetDate = (value: unknown): string => {
     return "Em aberto";
   };
 
- const etapa = (value: unknown): EtapaProcesso => {
-  const text = normalize(value);
+ const etapa = (value: unknown): EtapaProcesso | null => {
+  const text = normalize(value).replace(/[ªº]/g, "o");
+  if (!text) return null;
 
-  if (!text) return "Triagem";
-
-  if (text.includes("triagem")) {
-    return "Triagem";
-  }
-
-  if (
-    text.includes("perguntas") ||
-    text.includes("1º contato") ||
-    text.includes("1o contato") ||
-    text.includes("primeiro contato")
-  ) {
-    return "1º Contato";
-  }
-
-  if (
-    text.includes("video") ||
-    text.includes("vídeo")
-  ) {
-    return "Vídeo de Apresentação";
-  }
-
-  if (text.includes("coletiva")) {
-    return "Entrevista Coletiva (RH)";
-  }
-
-  if (text.includes("individual")) {
-    return "Entrevista Individual (RH)";
-  }
-
-  if (text.includes("pratica") || text.includes("prática")) {
-    return "Etapa Prática";
-  }
-
-  if (text.includes("gestor")) {
-    return "Gestor";
-  }
-
-  if (text.includes("diretoria")) {
-    return "Diretoria";
-  }
-
-  if (text.includes("banco")) {
-    return "Banco de Talentos";
-  }
-
-  return "Triagem";
+  if (text.includes("triagem")) return "Triagem";
+  if (text.includes("primeiro contato") || text.includes("1o contato") || text.includes("1 contato") || text.includes("perguntas") || text.includes("contato inicial")) return "1º Contato";
+  if (text.includes("video") && (text.includes("apresent") || text.includes("candidato") || text.includes("grav") || text === "video")) return "Vídeo de Apresentação";
+  if (text.includes("coletiva")) return "Entrevista Coletiva (RH)";
+  if (text.includes("individual")) return "Entrevista Individual (RH)";
+  if (text.includes("pratica") || text.includes("teste pratico") || text.includes("aula teste")) return "Etapa Prática";
+  if (text.includes("gestor") || text.includes("lideranca") || text.includes("lider") ) return "Gestor";
+  if (text.includes("diretoria") || text.includes("diretor")) return "Diretoria";
+  if (text.includes("banco")) return "Banco de Talentos";
+  return null;
 };
 
-  const statusCandidato = (value: unknown): StatusCandidato => {
+  const statusCandidato = (value: unknown): StatusCandidato | null => {
     const text = normalize(value);
-
+    if (!text) return null;
     if (text.includes("aprov")) return "Aprovado";
     if (text.includes("reprov")) return "Reprovado";
     if (text.includes("desist")) return "Desistente";
     if (text.includes("banco")) return "Banco de Talentos";
-    if (text.includes("ausente")) return "Ausente";
-
-    return "Em andamento";
+    if (text.includes("ausente") || text.includes("faltou")) return "Ausente";
+    if (text.includes("andamento") || text.includes("em processo") || text.includes("ativo")) return "Em andamento";
+    return null;
   };
 
   const getIsoWeek = (dateValue: string): string => {
@@ -1242,15 +1206,6 @@ const parseSheetDate = (value: unknown): string => {
       spreadsheetId,
       "'2. Processo Seletivo'!A2:N2000"
     );
-    console.table(
-  (candidatosValues || []).slice(0, 20).map((r) => ({
-    nome: r[4],
-    colunaH: r[7],
-    colunaI_ETAPA: r[8],
-    colunaJ_STATUS: r[9],
-  }))
-);
-
     result.candidatos = (candidatosValues || [])
       .filter((r) => r[1] && r[4])
       .map((r, index) => {
@@ -1273,34 +1228,33 @@ const parseSheetDate = (value: unknown): string => {
         const telefone = String(r[6] || "").trim();
         const origem = String(r[7] || "").trim();
 
-const etapaOriginal = String(r[8] || "").trim();
-
 const valorI = String(r[8] || "").trim();
 const valorJ = String(r[9] || "").trim();
+const etapaI = etapa(valorI);
+const etapaJ = etapa(valorJ);
+const statusI = statusCandidato(valorI);
+const statusJ = statusCandidato(valorJ);
 
-const iEhStatus = [
-  "Aprovado",
-  "Reprovado",
-  "Desistente",
-  "Ausente",
-  "Banco de Talentos",
-].includes(valorI);
-
-const jEhStatus = [
-  "Aprovado",
-  "Reprovado",
-  "Desistente",
-  "Ausente",
-  "Banco de Talentos",
-].includes(valorJ);
-
-const etapaAtual = iEhStatus && !jEhStatus
-  ? etapa(valorJ)
-  : etapa(valorI);
-
-const statusAtual = iEhStatus && !jEhStatus
-  ? statusCandidato(valorI)
-  : statusCandidato(valorJ);
+// A planilha tem I=etapa e J=status, mas algumas versões antigas têm essas
+// duas informações invertidas. Escolhe pelo conteúdo reconhecido, não só pelo índice.
+let etapaAtual: EtapaProcesso = "Triagem";
+let statusAtual: StatusCandidato = "Em andamento";
+if (etapaI && statusJ) {
+  etapaAtual = etapaI;
+  statusAtual = statusJ;
+} else if (etapaJ && statusI) {
+  etapaAtual = etapaJ;
+  statusAtual = statusI;
+} else if (etapaI) {
+  etapaAtual = etapaI;
+  statusAtual = statusJ || "Em andamento";
+} else if (etapaJ) {
+  etapaAtual = etapaJ;
+  statusAtual = statusI || "Em andamento";
+} else {
+  // Não descarta um status terminal mesmo quando a etapa está vazia/desconhecida.
+  statusAtual = statusJ || statusI || "Em andamento";
+}
 
         const primeiroContato = String(r[10] || "").trim();
         const justificativa = String(r[13] || "").trim();
