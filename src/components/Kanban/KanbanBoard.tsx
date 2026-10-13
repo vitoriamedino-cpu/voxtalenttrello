@@ -613,8 +613,8 @@ export const KanbanBoard: React.FC = () => {
         <div className="flex-1 overflow-x-auto overflow-y-hidden pt-0.5 pb-1 flex items-stretch gap-3 min-h-0">
           <div className="flex items-stretch gap-3 min-w-max h-full">
             {(kanbanFilterEtapa && kanbanFilterEtapa !== 'TODAS'
-              ? ETAPAS_KANBAN.filter((e) => e === kanbanFilterEtapa)
-              : ETAPAS_KANBAN
+              ? ETAPAS_KANBAN.filter((e) => e === kanbanFilterEtapa && e !== 'Banco de Talentos')
+              : ETAPAS_KANBAN.filter((e) => e !== 'Banco de Talentos')
             ).map((etapa) => {
             const candidatosEtapa =
   etapa === 'Banco de Talentos'

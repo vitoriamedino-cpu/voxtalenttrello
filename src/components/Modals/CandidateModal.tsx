@@ -32,6 +32,7 @@ import { useWorkspace } from '../../context/WorkspaceContext';
 import { uploadTextFileToDrive } from '../../lib/googleDriveService';
 import { sendGmailMessage } from '../../lib/googleGmailService';
 import { InterviewScheduleModal } from './InterviewScheduleModal';
+import { isCandidateProcessActive, getCandidateInactiveReason } from '../../lib/candidateEligibility';
 
 interface CandidateModalProps {
   candidateId: string | null;
@@ -60,6 +61,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
 
   const candidato = candidatos.find((c) => c.id === candidateId);
   const vaga = candidato ? getVagaById(candidato.vaga_id) : undefined;
+  const candidateActionsAllowed = isCandidateProcessActive(candidato);
   const { isConnected, confirmAction, login } = useWorkspace();
   const [isWorkspaceActionLoading, setIsWorkspaceActionLoading] = useState(false);
   const [workspaceToast, setWorkspaceToast] = useState<string | null>(null);
@@ -101,6 +103,10 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   };
 
   const handleDriveExport = () => {
+    if (!candidato || !candidateActionsAllowed) {
+      if (candidato) alert(getCandidateInactiveReason(candidato));
+      return;
+    }
     if (!isConnected) {
       login();
       return;
@@ -137,6 +143,10 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   };
 
   const handleGmailQuickSend = () => {
+    if (!candidato || !candidateActionsAllowed) {
+      if (candidato) alert(getCandidateInactiveReason(candidato));
+      return;
+    }
     if (!isConnected) {
       login();
       return;
@@ -162,6 +172,10 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
   };
 
   const handleOpenScheduleModal = () => {
+    if (!candidato || !candidateActionsAllowed) {
+      if (candidato) alert(getCandidateInactiveReason(candidato));
+      return;
+    }
     setIsScheduleModalOpen(true);
   };
 
@@ -315,7 +329,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                disabled={isWorkspaceActionLoading}
+                disabled={isWorkspaceActionLoading || !candidateActionsAllowed}
                 onClick={handleDriveExport}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-200 shadow-2xs transition-colors"
                 title="Salvar dossiê e histórico no Google Drive"
@@ -326,7 +340,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
 
               <button
                 type="button"
-                disabled={isWorkspaceActionLoading}
+                disabled={isWorkspaceActionLoading || !candidateActionsAllowed}
                 onClick={handleGmailQuickSend}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-200 shadow-2xs transition-colors"
                 title="Enviar e-mail para o candidato pelo Gmail"
@@ -337,7 +351,7 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
 
               <button
                 type="button"
-                disabled={isWorkspaceActionLoading}
+                disabled={isWorkspaceActionLoading || !candidateActionsAllowed}
                 onClick={handleOpenScheduleModal}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-[11px] font-bold text-teal-800 dark:text-teal-200 shadow-2xs transition-colors"
                 title="Agendar entrevista no Google Agenda com link Google Meet automático"
@@ -348,7 +362,8 @@ export const CandidateModal: React.FC<CandidateModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => setCandidatePdfModalId(candidato.id)}
+                disabled={!candidateActionsAllowed}
+                onClick={() => { if (candidateActionsAllowed) setCandidatePdfModalId(candidato.id); else alert(getCandidateInactiveReason(candidato)); }}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[11px] font-bold text-blue-700 dark:text-blue-300 shadow-2xs transition-colors"
                 title="Gerar PDF completo do candidato para visualização ou impressão"
               >

@@ -57,7 +57,8 @@ export const KanbanReprovadosColumn: React.FC<KanbanReprovadosColumnProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEtapa, setFilterEtapa] = useState<string>('TODAS');
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // A lista suspensa de reprovados começa compactada por padrão.
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [editingMotivoId, setEditingMotivoId] = useState<string | null>(null);
   const [tempMotivoText, setTempMotivoText] = useState('');
   const [reativarMenuId, setReativarMenuId] = useState<string | null>(null);

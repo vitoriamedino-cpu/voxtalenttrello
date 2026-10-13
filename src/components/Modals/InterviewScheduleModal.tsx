@@ -9,6 +9,7 @@ import {
   CalendarEventItem,
 } from '../../lib/googleCalendarService';
 import { formatMensagemText, buildWhatsAppLink } from '../../lib/formatters';
+import { isCandidateProcessActive, getCandidateInactiveReason } from '../../lib/candidateEligibility';
 import {
   Calendar as CalendarIcon,
   Video,
@@ -56,7 +57,9 @@ export const InterviewScheduleModal: React.FC<InterviewScheduleModalProps> = ({
 
   // Targets
   const isBatch = !candidato && candidatosBatch.length > 0;
-  const participants = isBatch ? candidatosBatch : candidato ? [candidato] : [];
+  const requestedParticipants = isBatch ? candidatosBatch : candidato ? [candidato] : [];
+  const participants = requestedParticipants.filter(isCandidateProcessActive);
+  const blockedParticipants = requestedParticipants.filter((p) => !isCandidateProcessActive(p));
   const participantsWithEmail = participants.filter((p) => Boolean(p.email));
 
   const getInitialDate = () => {
@@ -144,6 +147,10 @@ export const InterviewScheduleModal: React.FC<InterviewScheduleModalProps> = ({
   const handleScheduleEvent = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (participants.length === 0) {
+      alert(blockedParticipants.length ? getCandidateInactiveReason(blockedParticipants[0]) : 'Selecione ao menos um candidato ativo.');
+      return;
+    }
     if (!isConnected) {
       login();
       return;
@@ -715,7 +722,7 @@ export const InterviewScheduleModal: React.FC<InterviewScheduleModalProps> = ({
                     </span>
                   ) : (
                     <span>
-                      {participants.length} candidatos da vaga <strong>{vaga?.titulo}</strong> convocados.
+                      {participants.length} candidatos ativos da vaga <strong>{vaga?.titulo}</strong> convocados.
                     </span>
                   )}
                 </div>

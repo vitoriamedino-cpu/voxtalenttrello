@@ -34,3 +34,10 @@ O build Vite não pôde ser validado neste ambiente Linux porque o `node_modules
 - Status com variações de texto são reconhecidos por correspondência parcial, evitando que valores como “Aprovado ...” ou “Em andamento ...” sejam ignorados.
 - Removido o `console.table` temporário da importação.
 - Não sincronize/puxe alterações para a planilha antes de confirmar que a importação posicionou os candidatos corretamente.
+
+## Bloqueio de ações para candidatos com processo encerrado
+- Criada a regra central `src/lib/candidateEligibility.ts` para identificar candidatos Reprovados ou Desistentes.
+- Candidatos nesses status não aparecem nos seletores de disparo de e-mail, agendamento de Agenda/Meet nem na lista de criação de dossiês do Workspace.
+- As ações também são bloqueadas nos manipuladores e no modal individual do candidato, evitando contornar o filtro visual.
+- Agendamentos em lote ignoram candidatos Reprovados/Desistentes e só incluem candidatos ativos.
+- Os registros históricos continuam na base/planilha; esta alteração não apaga candidatos nem remove eventos já existentes do Google Agenda.

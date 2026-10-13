@@ -49,6 +49,7 @@ import {
   CalendarEventItem,
 } from '../../lib/googleCalendarService';
 import { createGoogleMeetSpace } from '../../lib/googleMeetService';
+import { isCandidateProcessActive, getCandidateInactiveReason } from '../../lib/candidateEligibility';
 import {
   createCandidateApplicationForm,
   createEvaluationRubricForm,
@@ -225,6 +226,7 @@ export const WorkspaceView: React.FC = () => {
   };
 
   const handleExportCandidateCvToDrive = (cand: typeof candidatos[0]) => {
+    if (!isCandidateProcessActive(cand)) { alert(getCandidateInactiveReason(cand)); return; }
     confirmAction(`Salvar o dossiê e histórico de ${cand.nome} no Google Drive?`, async () => {
       try {
         const textContent =
@@ -295,6 +297,7 @@ export const WorkspaceView: React.FC = () => {
 
   const handleSendGmail = () => {
     const candidate = candidatos.find((c) => c.id === selectedCandidateId);
+    if (candidate && !isCandidateProcessActive(candidate)) { alert(getCandidateInactiveReason(candidate)); return; }
     if (!candidate?.email) {
       alert('O candidato selecionado não possui endereço de e-mail cadastrado.');
       return;
@@ -316,6 +319,7 @@ export const WorkspaceView: React.FC = () => {
 
   const handleCreateCalendarEvent = () => {
     const candidate = candidatos.find((c) => c.id === eventCandidateId);
+    if (candidate && !isCandidateProcessActive(candidate)) { alert(getCandidateInactiveReason(candidate)); return; }
     const startIso = `${eventDate}T${eventStartTime}:00-03:00`;
     const startDt = new Date(`${eventDate}T${eventStartTime}:00`);
     const endDt = new Date(startDt.getTime() + parseInt(eventDuration, 10) * 60 * 1000);
@@ -632,7 +636,7 @@ export const WorkspaceView: React.FC = () => {
                     Exporte todo o histórico, notas e dados de um candidato como arquivo de texto no seu Google Drive.
                   </p>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    {candidatos.slice(0, 6).map((c) => (
+                    {candidatos.filter(isCandidateProcessActive).slice(0, 6).map((c) => (
                       <div
                         key={c.id}
                         className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 text-xs"
@@ -1469,7 +1473,7 @@ export const WorkspaceView: React.FC = () => {
                       onChange={(e) => setSelectedCandidateId(e.target.value)}
                       className="w-full text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00A9A1]"
                     >
-                      {candidatos.map((c) => (
+                      {candidatos.filter(isCandidateProcessActive).map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nome} - {c.vaga_titulo} ({c.email || 'Sem e-mail cadastrado'})
                         </option>
@@ -1586,7 +1590,7 @@ export const WorkspaceView: React.FC = () => {
                       onChange={(e) => setEventCandidateId(e.target.value)}
                       className="w-full text-xs rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00A9A1]"
                     >
-                      {candidatos.map((c) => (
+                      {candidatos.filter(isCandidateProcessActive).map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nome} ({c.vaga_titulo})
                         </option>
