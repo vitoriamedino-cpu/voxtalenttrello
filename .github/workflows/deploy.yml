@@ -2,8 +2,16 @@ name: Deploy VoxTalent to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    branches: [feat/firebase-access-sheets-safety]
   workflow_dispatch:
+    inputs:
+      deploy_branch:
+        description: Branch to deploy (manual runs only)
+        required: true
+        default: feat/firebase-access-sheets-safety
+        type: choice
+        options:
+          - feat/firebase-access-sheets-safety
 
 permissions:
   contents: read
