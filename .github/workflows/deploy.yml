@@ -4,14 +4,6 @@ on:
   push:
     branches: [feat/firebase-access-sheets-safety]
   workflow_dispatch:
-    inputs:
-      deploy_branch:
-        description: Branch to deploy (manual runs only)
-        required: true
-        default: feat/firebase-access-sheets-safety
-        type: choice
-        options:
-          - feat/firebase-access-sheets-safety
 
 permissions:
   contents: read
@@ -28,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -53,6 +47,7 @@ jobs:
           path: ./dist
 
   deploy:
+    if: github.event_name == 'workflow_dispatch'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
